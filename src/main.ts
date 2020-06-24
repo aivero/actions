@@ -11,18 +11,19 @@ const exec_prom = promisify(exec);
 
 async function run(): Promise<void> {
   try {
+    // Handle inputs
     const inputs = {
       token: core.getInput("token"),
       repository: core.getInput("repository"),
+      path: core.getInput("path"),
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
-
     const [owner, repo] = inputs.repository.split("/");
-
     const octokit = github.getOctokit(inputs.token);
+    const repo_path = inputs.path
 
-    let git_repo_path: string = process.env['GIT_REPO_PATH'] as string
-    const git = simpleGit(git_repo_path);
+    // Compare to previous commit
+    const git = simpleGit(repo_path);
     const diff = await git.diffSummary(["HEAD", "HEAD^"]);
 
     // Find package versions that needs to be build
@@ -35,7 +36,7 @@ async function run(): Promise<void> {
 
       // Only handle changed files in recipe folder and
       // only handle files that exist in current commit
-      if (root != "recipes" || !fs.existsSync(path.join(git_repo_path, f.file))) {
+      if (root != "recipes" || !fs.existsSync(path.join(repo_path, f.file))) {
         continue;
       }
 
@@ -83,7 +84,7 @@ async function run(): Promise<void> {
         );
         const folder = conf.versions[version].folder;
         const { stdout, stderr } = await exec_prom(
-          `conan inspect ${path.join(git_repo_path, 'recipes', pkg, folder)}`
+          `conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`
         );
         core.debug(stderr);
         const recipe = YAML.parse(stdout);

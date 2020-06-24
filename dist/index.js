@@ -5418,15 +5418,18 @@ const exec_prom = util_2.promisify(child_process_1.exec);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            // Handle inputs
             const inputs = {
                 token: core.getInput("token"),
                 repository: core.getInput("repository"),
+                path: core.getInput("path"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             const [owner, repo] = inputs.repository.split("/");
             const octokit = github.getOctokit(inputs.token);
-            let git_repo_path = process.env['GIT_REPO_PATH'];
-            const git = simple_git_1.default(git_repo_path);
+            const repo_path = inputs.path;
+            // Compare to previous commit
+            const git = simple_git_1.default(repo_path);
             const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
             // Find package versions that needs to be build
             const build_versions = {};
@@ -5437,7 +5440,7 @@ function run() {
                 }
                 // Only handle changed files in recipe folder and
                 // only handle files that exist in current commit
-                if (root != "recipes" || !fs_1.default.existsSync(path.join(git_repo_path, f.file))) {
+                if (root != "recipes" || !fs_1.default.existsSync(path.join(repo_path, f.file))) {
                     continue;
                 }
                 // Handle config.yml changes
@@ -5476,7 +5479,7 @@ function run() {
                 for (const version of versions) {
                     const conf = yaml_1.default.parse(yield git.show(["HEAD:recipes/" + pkg + "/config.yml"]));
                     const folder = conf.versions[version].folder;
-                    const { stdout, stderr } = yield exec_prom(`conan inspect ${path.join(git_repo_path, 'recipes', pkg, folder)}`);
+                    const { stdout, stderr } = yield exec_prom(`conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
                     core.debug(stderr);
                     const recipe = yaml_1.default.parse(stdout);
                     const combinations = [];
