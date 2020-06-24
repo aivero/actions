@@ -3,7 +3,7 @@ import * as github from "@actions/github";
 import { inspect } from "util";
 import { promisify } from "util";
 import { exec } from "child_process"
-import { version } from "os";
+import * as path from "path"
 const exec_prom = promisify(exec);
 
 async function run(): Promise<void> {
@@ -17,8 +17,8 @@ async function run(): Promise<void> {
     core.debug(`Inputs: ${inspect(inputs)}`);
 
     await exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip`)
-    await exec_prom(`conan config set general.default_profile=linux_${inputs.profile}`)
-    await exec_prom(`conan create ${inputs.folder} ${inputs.package}/${inputs.version}`)
+    await exec_prom(`conan config set general.default_profile=${inputs.profile}`)
+    await exec_prom(`conan create ${path.join(inputs.folder)} ${inputs.package}/${inputs.version}`)
 
   } catch (error) {
     core.debug(inspect(error));
