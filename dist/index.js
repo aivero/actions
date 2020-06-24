@@ -5427,7 +5427,7 @@ function run() {
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             const [owner, repo] = inputs.repository.split("/");
             const octokit = github.getOctokit(inputs.token);
-            const repo_path = inputs.repository_path;
+            const repo_path = inputs.repository_path || repo;
             // Compare to previous commit
             const git = simple_git_1.default(repo_path);
             const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
