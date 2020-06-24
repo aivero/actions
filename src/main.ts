@@ -6,6 +6,7 @@ import YAML from "yaml";
 import fs from "fs";
 import { promisify } from "util";
 import { exec } from "child_process"
+import * as path from "path"
 const exec_prom = promisify(exec);
 
 async function run(): Promise<void> {
@@ -20,10 +21,11 @@ async function run(): Promise<void> {
 
     const octokit = github.getOctokit(inputs.token);
 
-    const git_path = "/home/noverby/Work/git/conan-center-index";
-    const git = simpleGit(git_path);
+    let git_repo_path: string = process.env['GIT_REPO_PATH'] as string
+    const git = simpleGit(git_repo_path);
     const diff = await git.diffSummary(["HEAD", "HEAD^"]);
 
+    // Find package versions that needs to be build
     const build_versions: { [pkg: string]: Set<string> } = {};
     for (const f of diff.files) {
       const [root, pkg, conf_or_ver] = f.file.split("/");
@@ -33,7 +35,7 @@ async function run(): Promise<void> {
 
       // Only handle changed files in recipe folder and
       // only handle files that exist in current commit
-      if (root != "recipes" || !fs.existsSync(git_path + "/" + f.file)) {
+      if (root != "recipes" || !fs.existsSync(path.join(git_repo_path, f.file))) {
         continue;
       }
 
@@ -80,46 +82,59 @@ async function run(): Promise<void> {
           await git.show(["HEAD:recipes/" + pkg + "/config.yml"])
         );
         const folder = conf.versions[version].folder;
-        const { stdout, } = await exec_prom(
-          `conan inspect ${git_path}/recipes/${pkg}/${folder}`
+        const { stdout, stderr } = await exec_prom(
+          `conan inspect ${path.join(git_repo_path, 'recipes', pkg, folder)}`
         );
+        core.debug(stderr);
         const recipe = YAML.parse(stdout);
 
         const combinations: { tags; profile }[] = [];
-        recipe.settings.os.forEach((os) => {
-          switch (os) {
-            case "Linux":
-              recipe.settings.arch.forEach((arch) => {
-                const tags = ["ubuntu-18.04"];
-                if (arch == "armv8") {
-                  tags.push("ARM64");
-                }
-                combinations.push({ tags: tags, profile: `Linux-${arch}` });
-              });
-              break;
-            case "Windows":
-              combinations.push({
-                tags: ["windows-latest"],
-                profile: "Windows-x86_64",
-              });
-              break;
-            case "Macos":
-              combinations.push({
-                tags: ["macos-latest"],
-                profile: "Macos-x86_64",
-              });
-              break;
-            case "Wasi":
-              combinations.push({ tags: ["ubuntu-18.04"], profile: "Wasi-wasm" });
-              break;
-          }
-        });
+        if ('os' in recipe.settings) {
+          recipe.settings.os.forEach((os) => {
+            switch (os) {
+              case "Linux":
+                recipe.settings.arch.forEach((arch) => {
+                  const tags = ["ubuntu-18.04"];
+                  if (arch == "armv8") {
+                    tags.push("ARM64");
+                  }
+                  combinations.push({
+                    tags: tags,
+                    profile: `Linux-${arch}`,
+                  });
+                });
+                break;
+              case "Windows":
+                combinations.push({
+                  tags: ["windows-latest"],
+                  profile: "Windows-x86_64",
+                });
+                break;
+              case "Macos":
+                combinations.push({
+                  tags: ["macos-latest"],
+                  profile: "Macos-x86_64",
+                });
+                break;
+              case "Wasi":
+                combinations.push({
+                  tags: ["ubuntu-18.04"],
+                  profile: "Wasi-wasm",
+                });
+                break;
+            }
+          });
+        } else {
+          // Build cross os/arch packages on Linux x86_64
+          combinations.push({ tags: [], profile: `Linux-x86_64` });
+        }
 
-        // Dispatch build settings
+        // Dispatch Conan events
         combinations.forEach(async (comb) => {
           const payload = {
             package: pkg,
             version: version,
+            folder: ['recipes', pkg, folder],
             tags: comb.tags,
             profile: comb.profile,
             ref: process.env.GITHUB_REF,
