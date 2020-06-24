@@ -5412,55 +5412,59 @@ const util_1 = __webpack_require__(669);
 const yaml_1 = __importDefault(__webpack_require__(596));
 const fs_1 = __importDefault(__webpack_require__(747));
 const util_2 = __webpack_require__(669);
-const exec = util_2.promisify(__webpack_require__(129).exec);
+const child_process_1 = __webpack_require__(129);
+const path = __importStar(__webpack_require__(622));
+const exec_prom = util_2.promisify(child_process_1.exec);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const inputs = {
-                token: core.getInput('token'),
-                repository: core.getInput('repository'),
+                token: core.getInput("token"),
+                repository: core.getInput("repository"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
-            const [owner, repo] = inputs.repository.split('/');
+            const [owner, repo] = inputs.repository.split("/");
             const octokit = github.getOctokit(inputs.token);
-            let git_path = '/home/noverby/Work/git/conan-center-index';
-            let git = simple_git_1.default(git_path);
-            let diff = yield git.diffSummary(['HEAD', 'HEAD^']);
-            let build_versions = {};
-            for (let f of diff.files) {
-                let [root, pkg, conf_or_ver] = f.file.split('/');
-                // Only handle changed files in recipe folder and
-                // only handle files that exist in current commit
-                if (root != 'recipes' || !fs_1.default.existsSync(git_path + "/" + f.file)) {
-                    continue;
-                }
+            let git_repo_path = process.env['GIT_REPO_PATH'];
+            const git = simple_git_1.default(git_repo_path);
+            const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
+            // Find package versions that needs to be build
+            const build_versions = {};
+            for (const f of diff.files) {
+                const [root, pkg, conf_or_ver] = f.file.split("/");
                 if (!(pkg in build_versions)) {
                     build_versions[pkg] = new Set();
                 }
-                if (conf_or_ver == 'config.yml') {
-                    // Handle config.yml changes
-                    let conf_new = yaml_1.default.parse(yield git.show(['HEAD:' + f.file]));
-                    let files_old = yield git.raw(['ls-tree', '-r', 'HEAD^']);
+                // Only handle changed files in recipe folder and
+                // only handle files that exist in current commit
+                if (root != "recipes" || !fs_1.default.existsSync(path.join(git_repo_path, f.file))) {
+                    continue;
+                }
+                // Handle config.yml changes
+                if (conf_or_ver == "config.yml") {
                     // New config.yml
+                    const conf_new = yaml_1.default.parse(yield git.show(["HEAD:" + f.file]));
+                    const files_old = yield git.raw(["ls-tree", "-r", "HEAD^"]);
                     if (!files_old.includes(f.file)) {
-                        Object.keys(conf_new.versions).forEach(version => build_versions[pkg].add(version));
+                        Object.keys(conf_new.versions).forEach((version) => build_versions[pkg].add(version));
                         continue;
                     }
                     // Compare to old config.yml
-                    let conf_old = yaml_1.default.parse(yield git.show(['HEAD^:' + f.file]));
-                    Object.keys(conf_new.versions).forEach(version => {
+                    const conf_old = yaml_1.default.parse(yield git.show(["HEAD^:" + f.file]));
+                    Object.keys(conf_new.versions).forEach((version) => {
                         // Check if version existed in old commit or
                         // check if folder name changed for version
                         if (version in conf_old.versions === false ||
-                            conf_new.versions[version].folder != conf_old.versions[version].folder) {
+                            conf_new.versions[version].folder !=
+                                conf_old.versions[version].folder) {
                             build_versions[pkg].add(version);
                         }
                     });
                 }
                 else {
                     // Handle {pkg-name}/{pkg-version}/* changes
-                    let conf = yaml_1.default.parse(yield git.show(['HEAD:recipes/' + pkg + '/config.yml']));
-                    Object.keys(conf.versions).forEach(version => {
+                    const conf = yaml_1.default.parse(yield git.show(["HEAD:recipes/" + pkg + "/config.yml"]));
+                    Object.keys(conf.versions).forEach((version) => {
                         if (conf.versions[version].folder == conf_or_ver) {
                             build_versions[pkg].add(version);
                         }
@@ -5468,44 +5472,71 @@ function run() {
                 }
             }
             // Extract build settings (os, arch, profile)
-            for (let [pkg, versions] of Object.entries(build_versions)) {
-                for (let version of versions) {
-                    let conf = yaml_1.default.parse(yield git.show(['HEAD:recipes/' + pkg + '/config.yml']));
-                    let folder = conf.versions[version].folder;
-                    let { stdout, stderr } = yield exec(`conan inspect ${git_path}/recipes/${pkg}/${folder}`);
-                    let recipe = yaml_1.default.parse(stdout);
-                    let combinations = [];
-                    recipe.settings.os.forEach(os => {
-                        switch (os) {
-                            case 'Linux':
-                                recipe.settings.arch.forEach(arch => {
-                                    let tags = ['ubuntu-18.04'];
-                                    if (arch == 'armv8') {
-                                        tags.push('ARM64');
-                                    }
-                                    combinations.push({ tags: tags, profile: `Linux-${arch}` });
-                                });
-                                break;
-                            case 'Windows':
-                                combinations.push({ tags: ['windows-latest'], profile: 'Windows-x86_64' });
-                                break;
-                            case 'Macos':
-                                combinations.push({ tags: ['macos-latest'], profile: 'Macos-x86_64' });
-                                break;
-                            case 'Wasi':
-                                combinations.push({ tags: [''], profile: 'Wasi-wasm' });
-                                break;
-                        }
-                    });
-                    // Dispatch build settings
+            for (const [pkg, versions] of Object.entries(build_versions)) {
+                for (const version of versions) {
+                    const conf = yaml_1.default.parse(yield git.show(["HEAD:recipes/" + pkg + "/config.yml"]));
+                    const folder = conf.versions[version].folder;
+                    const { stdout, stderr } = yield exec_prom(`conan inspect ${path.join(git_repo_path, 'recipes', pkg, folder)}`);
+                    core.debug(stderr);
+                    const recipe = yaml_1.default.parse(stdout);
+                    const combinations = [];
+                    if ('os' in recipe.settings) {
+                        recipe.settings.os.forEach((os) => {
+                            switch (os) {
+                                case "Linux":
+                                    recipe.settings.arch.forEach((arch) => {
+                                        const tags = ["ubuntu-18.04"];
+                                        if (arch == "armv8") {
+                                            tags.push("ARM64");
+                                        }
+                                        combinations.push({
+                                            tags: tags,
+                                            profile: `Linux-${arch}`,
+                                        });
+                                    });
+                                    break;
+                                case "Windows":
+                                    combinations.push({
+                                        tags: ["windows-latest"],
+                                        profile: "Windows-x86_64",
+                                    });
+                                    break;
+                                case "Macos":
+                                    combinations.push({
+                                        tags: ["macos-latest"],
+                                        profile: "Macos-x86_64",
+                                    });
+                                    break;
+                                case "Wasi":
+                                    combinations.push({
+                                        tags: ["ubuntu-18.04"],
+                                        profile: "Wasi-wasm",
+                                    });
+                                    break;
+                            }
+                        });
+                    }
+                    else {
+                        // Build cross os/arch packages on Linux x86_64
+                        combinations.push({ tags: [], profile: `Linux-x86_64` });
+                    }
+                    // Dispatch Conan events
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
-                        let payload = { package: pkg, version: version, tags: comb.tags, profile: comb.profile, ref: process.env.GITHUB_REF, sha: process.env.GITHUB_SHA };
+                        const payload = {
+                            package: pkg,
+                            version: version,
+                            folder: ['recipes', pkg, folder],
+                            tags: comb.tags,
+                            profile: comb.profile,
+                            ref: process.env.GITHUB_REF,
+                            sha: process.env.GITHUB_SHA,
+                        };
                         core.debug(`${util_1.inspect(payload)}`);
                         yield octokit.repos.createDispatchEvent({
                             owner: owner,
                             repo: repo,
-                            event_type: 'conan',
-                            client_payload: payload
+                            event_type: "conan",
+                            client_payload: payload,
                         });
                     }));
                 }
