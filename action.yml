@@ -1,0 +1,19 @@
+name: 'Conan action'
+description: 'Run Conan tasks'
+inputs:
+  package:
+    description: 'Package name'
+  version:
+    description: 'Package version'
+  folder:
+    description: 'Package folder path'
+    default: .
+  profile:
+    description: 'Conan profile'
+    default: default
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+branding:
+  icon: 'target'
+  color: 'gray-dark'
