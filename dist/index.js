@@ -101,7 +101,6 @@ const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
 const util_2 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
-const path = __importStar(__webpack_require__(622));
 const exec_prom = util_2.promisify(child_process_1.exec);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -115,7 +114,7 @@ function run() {
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             yield exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip`);
             yield exec_prom(`conan config set general.default_profile=${inputs.profile}`);
-            yield exec_prom(`conan create ${path.join(inputs.path)} ${inputs.package}/${inputs.version}`);
+            yield exec_prom(`conan create ${inputs.path} ${inputs.package}/${inputs.version}@`);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
