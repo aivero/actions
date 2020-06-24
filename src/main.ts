@@ -11,14 +11,14 @@ async function run(): Promise<void> {
     const inputs = {
       package: core.getInput("package"),
       version: core.getInput("version"),
-      folder: core.getInput("folder"),
+      path: core.getInput("path"),
       profile: core.getInput("profile"),
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
     await exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip`)
     await exec_prom(`conan config set general.default_profile=${inputs.profile}`)
-    await exec_prom(`conan create ${path.join(inputs.folder)} ${inputs.package}/${inputs.version}`)
+    await exec_prom(`conan create ${path.join(inputs.path)} ${inputs.package}/${inputs.version}`)
 
   } catch (error) {
     core.debug(inspect(error));
