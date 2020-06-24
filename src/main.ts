@@ -18,7 +18,7 @@ async function run(): Promise<void> {
 
     await exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip`)
     await exec_prom(`conan config set general.default_profile=${inputs.profile}`)
-    await exec_prom(`conan create ${path.join(inputs.path)} ${inputs.package}/${inputs.version}`)
+    await exec_prom(`conan create ${inputs.path} ${inputs.package}/${inputs.version}`)
 
   } catch (error) {
     core.debug(inspect(error));
