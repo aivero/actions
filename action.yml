@@ -1,0 +1,15 @@
+name: 'Conan Dispatch'
+description: 'Create a conan dispatch event'
+inputs:
+  token:
+    description: 'A repo scoped GitHub Personal Access Token'
+    required: true
+  repository:
+    description: 'The full name of the repository to send the dispatch.'
+    default: ${{ github.repository }}
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+branding:
+  icon: 'target'
+  color: 'gray-dark'
