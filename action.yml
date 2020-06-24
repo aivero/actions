@@ -7,7 +7,7 @@ inputs:
   repository:
     description: 'The full name of the repository to send the dispatch.'
     default: ${{ github.repository }}
-  path:
+  repository_path:
     description: 'Path to repository with Conan recipes'
     default: .
 runs:
