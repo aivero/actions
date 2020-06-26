@@ -112,7 +112,7 @@ function run() {
                 profile: core.getInput("profile"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
-            yield exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip`);
+            yield exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
             yield exec_prom(`conan config set general.default_profile=${inputs.profile}`);
             yield exec_prom(`conan create ${inputs.path} ${inputs.package}/${inputs.version}@`);
         }

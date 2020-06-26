@@ -16,7 +16,7 @@ async function run(): Promise<void> {
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
-    await exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip`)
+    await exec_prom(`conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`)
     await exec_prom(`conan config set general.default_profile=${inputs.profile}`)
     await exec_prom(`conan create ${inputs.path} ${inputs.package}/${inputs.version}@`)
 
