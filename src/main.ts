@@ -1,10 +1,6 @@
 import * as core from "@actions/core";
-import * as github from "@actions/github";
 import { inspect } from "util";
-import { promisify } from "util";
-import * as path from "path"
-import { stringify } from "querystring";
-import { spawn } from "await-spawn"
+import * as spawn from "await-spawn"
 
 function exec(full_cmd: string) {
   let args = full_cmd.split(' ');
