@@ -5484,7 +5484,7 @@ function run() {
                 for (const version of versions) {
                     const conf = yaml_1.default.parse(yield git.show(["HEAD:recipes/" + pkg + "/config.yml"]));
                     const folder = conf.versions[version].folder;
-                    const { stdout, stderr } = yield exec_prom(`conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
+                    const { stdout, stderr } = yield exec_prom(`~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
                     core.debug(stderr);
                     const recipe = yaml_1.default.parse(stdout);
                     const combinations = [];

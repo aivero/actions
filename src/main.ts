@@ -89,7 +89,7 @@ async function run(): Promise<void> {
         );
         const folder: string = conf.versions[version].folder;
         const { stdout, stderr } = await exec_prom(
-          `conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`
+          `~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`
         );
         core.debug(stderr);
         const recipe = YAML.parse(stdout);
