@@ -1,19 +1,17 @@
 import * as core from "@actions/core";
 import { inspect } from "util";
-import * as spawn from "await-spawn"
+const spawn = require('await-spawn')
 
-function exec(full_cmd: string) {
+
+async function exec(full_cmd: string) {
   let args = full_cmd.split(' ');
   let cmd = args.shift();
   if (cmd) {
     console.log(`Running: ${full_cmd}`);
-    let proc = spawn(cmd, args, { stdio: 'inherit' });
-
-    proc.on('close', (code) => {
-      if (code) {
-        throw `Command '${full_cmd}' failed with code: ${code}`
-      }
-    });
+    let proc = await spawn(cmd, args, { stdio: 'inherit' });
+    if (proc.code) {
+      throw `Command '${full_cmd}' failed with code: ${proc.code}`
+    }
   }
 }
 

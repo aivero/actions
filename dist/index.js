@@ -384,19 +384,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
-const spawn = __importStar(__webpack_require__(494));
+const spawn = __webpack_require__(494);
 function exec(full_cmd) {
-    let args = full_cmd.split(' ');
-    let cmd = args.shift();
-    if (cmd) {
-        console.log(`Running: ${full_cmd}`);
-        let proc = spawn(cmd, args, { stdio: 'inherit' });
-        proc.on('close', (code) => {
-            if (code) {
-                throw `Command '${full_cmd}' failed with code: ${code}`;
+    return __awaiter(this, void 0, void 0, function* () {
+        let args = full_cmd.split(' ');
+        let cmd = args.shift();
+        if (cmd) {
+            console.log(`Running: ${full_cmd}`);
+            let proc = yield spawn(cmd, args, { stdio: 'inherit' });
+            if (proc.code) {
+                throw `Command '${full_cmd}' failed with code: ${proc.code}`;
             }
-        });
-    }
+        }
+    });
 }
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
