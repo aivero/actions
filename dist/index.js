@@ -110,43 +110,49 @@ const child_process_1 = __webpack_require__(129);
 function exec(full_cmd) {
     var e_1, _a, e_2, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        let args = full_cmd.split(' ');
-        let cmd = args.shift();
-        if (!cmd) {
-            throw new Error(`Invalid command: '${full_cmd}'`);
-        }
-        const child = child_process_1.spawn(cmd, args);
         try {
-            for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
-                const chunk = _d.value;
-                process.stdout.write(chunk);
+            let args = full_cmd.split(' ');
+            let cmd = args.shift();
+            if (!cmd) {
+                throw new Error(`Invalid command: '${full_cmd}'`);
             }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
+            const child = child_process_1.spawn(cmd, args);
             try {
-                if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
+                for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
+                    const chunk = _d.value;
+                    process.stdout.write(chunk);
+                }
             }
-            finally { if (e_1) throw e_1.error; }
-        }
-        try {
-            for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
-                const chunk = _f.value;
-                process.stderr.write(chunk);
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
+                }
+                finally { if (e_1) throw e_1.error; }
             }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
             try {
-                if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
+                for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
+                    const chunk = _f.value;
+                    process.stderr.write(chunk);
+                }
             }
-            finally { if (e_2) throw e_2.error; }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+            const exitCode = yield new Promise((resolve, reject) => {
+                child.on('close', resolve);
+            });
+            if (exitCode) {
+                throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
+            }
         }
-        const exitCode = yield new Promise((resolve, reject) => {
-            child.on('close', resolve);
-        });
-        if (exitCode) {
-            throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
+        catch (error) {
+            core.debug(util_1.inspect(error));
+            core.setFailed(error.message);
         }
     });
 }
@@ -164,11 +170,11 @@ function run() {
             const [cfg_url, cfg_dir] = inputs.conan_config.split('|');
             const [repo_name, repo_user, repo_password] = inputs.conan_repo.split('|');
             const conan_path = `${process.env.HOME}/.local/bin/conan`;
-            exec(`${conan_path} config install ${cfg_url} -sf ${cfg_dir}`);
-            exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
-            exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
-            exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
-            exec(`${conan_path} upload ${inputs.package} -r ${repo_name}`);
+            yield exec(`${conan_path} config install ${cfg_url} -sf ${cfg_dir}`);
+            yield exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
+            yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
+            yield exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
+            yield exec(`${conan_path} upload ${inputs.package} -r ${repo_name}`);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
