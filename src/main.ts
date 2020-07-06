@@ -20,7 +20,7 @@ async function run(): Promise<void> {
     core.debug(`Inputs: ${inspect(inputs)}`);
     const [owner, repo] = inputs.repository.split("/");
     const octokit = github.getOctokit(inputs.token);
-    const repo_path = inputs.repository_path || repo;
+    const repo_path = inputs.repository_path || "";
 
     // Compare to previous commit
     const git = simpleGit(repo_path);
