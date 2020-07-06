@@ -99,9 +99,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
-const util_2 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
-const exec_prom = util_2.promisify(child_process_1.exec);
+function exec(full_cmd) {
+    let args = full_cmd.split(' ');
+    let cmd = args.shift();
+    if (cmd) {
+        child_process_1.spawn(cmd, args, { stdio: 'inherit' });
+    }
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -112,9 +117,9 @@ function run() {
                 profile: core.getInput("profile"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
-            yield exec_prom(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
-            yield exec_prom(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`);
-            yield exec_prom(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`, { 'maxBuffer': 100 * 1024 * 1024 });
+            exec(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
+            exec(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`);
+            exec(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`);
         }
         catch (error) {
             core.debug(util_1.inspect(error));

@@ -2,9 +2,16 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { inspect } from "util";
 import { promisify } from "util";
-import { exec } from "child_process"
+import { spawn } from "child_process"
 import * as path from "path"
-const exec_prom = promisify(exec);
+
+function exec(full_cmd: string) {
+  let args = full_cmd.split(' ');
+  let cmd = args.shift();
+  if (cmd) {
+    spawn(cmd, args, { stdio: 'inherit' });
+  }
+}
 
 async function run(): Promise<void> {
   try {
@@ -16,9 +23,9 @@ async function run(): Promise<void> {
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
-    await exec_prom(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`)
-    await exec_prom(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`)
-    await exec_prom(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`, { 'maxBuffer': 100 * 1024 * 1024 })
+    exec(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
+    exec(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`);
+    exec(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`);
 
   } catch (error) {
     core.debug(inspect(error));
