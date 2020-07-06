@@ -119,7 +119,7 @@ function exec(full_cmd) {
         try {
             for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
                 const chunk = _d.value;
-                console.log(chunk);
+                process.stdout.write(chunk);
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
@@ -132,7 +132,7 @@ function exec(full_cmd) {
         try {
             for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
                 const chunk = _f.value;
-                console.error(chunk);
+                process.stderr.write(chunk);
             }
         }
         catch (e_2_1) { e_2 = { error: e_2_1 }; }

@@ -12,10 +12,10 @@ async function exec(full_cmd: string) {
   const child = spawn(cmd, args);
 
   for await (const chunk of child.stdout) {
-    console.log(chunk);
+    process.stdout.write(chunk);
   }
   for await (const chunk of child.stderr) {
-    console.error(chunk);
+    process.stderr.write(chunk);
   }
   const exitCode = await new Promise((resolve, reject) => {
     child.on('close', resolve);
