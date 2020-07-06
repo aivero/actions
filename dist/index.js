@@ -5434,26 +5434,31 @@ function run() {
             // Find package versions that needs to be build
             const build_versions = {};
             for (const f of diff.files) {
-                const [root, pkg, conf_or_ver] = f.file.split("/");
+                let file = f.file;
+                // Handle renaming
+                if (file.includes(" => ")) {
+                    file = file.replace(/{(.*) => .*}/, "$1");
+                }
+                const [root, pkg, conf_or_ver] = file.split("/");
                 if (!(pkg in build_versions)) {
                     build_versions[pkg] = new Set();
                 }
                 // Only handle changed files in recipe folder and
                 // only handle files that exist in current commit
-                if (root != "recipes" || !fs_1.default.existsSync(path.join(repo_path, f.file))) {
+                if (root != "recipes" || !fs_1.default.existsSync(path.join(repo_path, file))) {
                     continue;
                 }
                 // Handle config.yml changes
                 if (conf_or_ver == "config.yml") {
                     // New config.yml
-                    const conf_new = yaml_1.default.parse(yield git.show(["HEAD:" + f.file]));
+                    const conf_new = yaml_1.default.parse(yield git.show(["HEAD:" + file]));
                     const files_old = yield git.raw(["ls-tree", "-r", "HEAD^"]);
-                    if (!files_old.includes(f.file)) {
+                    if (!files_old.includes(file)) {
                         Object.keys(conf_new.versions).forEach((version) => build_versions[pkg].add(version));
                         continue;
                     }
                     // Compare to old config.yml
-                    const conf_old = yaml_1.default.parse(yield git.show(["HEAD^:" + f.file]));
+                    const conf_old = yaml_1.default.parse(yield git.show(["HEAD^:" + file]));
                     Object.keys(conf_new.versions).forEach((version) => {
                         // Check if version existed in old commit or
                         // check if folder name changed for version
@@ -5483,11 +5488,11 @@ function run() {
                     core.debug(stderr);
                     const recipe = yaml_1.default.parse(stdout);
                     const combinations = [];
-                    if ('os' in recipe.settings) {
-                        recipe.settings.os.forEach((os) => {
+                    if ('os_build' in recipe.settings) {
+                        recipe.settings.os_build.forEach((os) => {
                             switch (os) {
                                 case "Linux":
-                                    recipe.settings.arch.forEach((arch) => {
+                                    recipe.settings.arch_build.forEach((arch) => {
                                         const tags = ["ubuntu-18.04"];
                                         if (arch == "armv8") {
                                             tags.push("ARM64");
@@ -5528,7 +5533,7 @@ function run() {
                         const payload = {
                             package: pkg,
                             version: version,
-                            folder: ['recipes', pkg, folder],
+                            path: path.join('recipes', pkg, folder),
                             tags: comb.tags,
                             profile: comb.profile,
                             ref: process.env.GITHUB_REF,
