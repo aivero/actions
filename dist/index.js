@@ -104,8 +104,13 @@ function exec(full_cmd) {
     let args = full_cmd.split(' ');
     let cmd = args.shift();
     if (cmd) {
-        core.debug(`Running: ${full_cmd}`);
-        child_process_1.spawn(cmd, args, { stdio: 'inherit' });
+        console.log(`Running: ${full_cmd}`);
+        let proc = child_process_1.spawn(cmd, args, { stdio: 'inherit' });
+        proc.on('close', (code) => {
+            if (code != 0) {
+                throw `Command '${full_cmd}' failed with code: ${code}`;
+            }
+        });
     }
 }
 function run() {
