@@ -114,7 +114,7 @@ function run() {
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             yield exec_prom(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
             yield exec_prom(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`);
-            yield exec_prom(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`);
+            yield exec_prom(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`, { 'maxBuffer': 100 * 1024 * 1024 });
         }
         catch (error) {
             core.debug(util_1.inspect(error));

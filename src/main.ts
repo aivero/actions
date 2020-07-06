@@ -18,7 +18,7 @@ async function run(): Promise<void> {
 
     await exec_prom(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`)
     await exec_prom(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`)
-    await exec_prom(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`)
+    await exec_prom(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`, { 'maxBuffer': 100 * 1024 * 1024 })
 
   } catch (error) {
     core.debug(inspect(error));
