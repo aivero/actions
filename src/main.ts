@@ -31,8 +31,8 @@ async function run(): Promise<void> {
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
-    const [cfg_url, cfg_dir] = inputs.conan_config.split(':');
-    const [repo_name, repo_user, repo_password] = inputs.conan_repo.split(':')
+    const [cfg_url, cfg_dir] = inputs.conan_config.split('|');
+    const [repo_name, repo_user, repo_password] = inputs.conan_repo.split('|')
 
     const conan_path = `${process.env.HOME}/.local/bin/conan`
     exec(`${conan_path} config install ${cfg_url} -sf ${cfg_dir}`);
