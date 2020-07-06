@@ -23,9 +23,10 @@ async function run(): Promise<void> {
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
-    exec(`~/.local/bin/conan config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
-    exec(`~/.local/bin/conan config set general.default_profile=${inputs.profile}`);
-    exec(`~/.local/bin/conan create ${inputs.path} ${inputs.package}/${inputs.version}@`);
+    const conan_path = `${process.env.HOME}/.local/bin/conan`
+    exec(`${conan_path} config install https://github.com/aivero/conan-config/archive/master.zip -sf conan-config-master`);
+    exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
+    exec(`${conan_path} create ${inputs.path} ${inputs.package}/${inputs.version}@`);
 
   } catch (error) {
     core.debug(inspect(error));
