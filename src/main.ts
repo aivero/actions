@@ -2,9 +2,9 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { inspect } from "util";
 import { promisify } from "util";
-import { spawn, ChildProcess } from "child_process"
 import * as path from "path"
 import { stringify } from "querystring";
+import { spawn } from "await-spawn"
 
 function exec(full_cmd: string) {
   let args = full_cmd.split(' ');
@@ -12,8 +12,9 @@ function exec(full_cmd: string) {
   if (cmd) {
     console.log(`Running: ${full_cmd}`);
     let proc = spawn(cmd, args, { stdio: 'inherit' });
+
     proc.on('close', (code) => {
-      if (code != 0) {
+      if (code) {
         throw `Command '${full_cmd}' failed with code: ${code}`
       }
     });
