@@ -104,6 +104,7 @@ function exec(full_cmd) {
     let args = full_cmd.split(' ');
     let cmd = args.shift();
     if (cmd) {
+        core.debug(`Running: ${full_cmd}`);
         child_process_1.spawn(cmd, args, { stdio: 'inherit' });
     }
 }

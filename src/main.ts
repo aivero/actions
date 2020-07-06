@@ -10,6 +10,7 @@ function exec(full_cmd: string) {
   let args = full_cmd.split(' ');
   let cmd = args.shift();
   if (cmd) {
+    core.debug(`Running: ${full_cmd}`);
     spawn(cmd, args, { stdio: 'inherit' });
   }
 }
