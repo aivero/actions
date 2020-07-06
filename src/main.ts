@@ -1,17 +1,28 @@
 import * as core from "@actions/core";
 import { inspect } from "util";
-const spawn = require('await-spawn')
+import { spawn } from "child_process";
 
 
 async function exec(full_cmd: string) {
   let args = full_cmd.split(' ');
   let cmd = args.shift();
-  if (cmd) {
-    console.log(`Running: ${full_cmd}`);
-    let proc = await spawn(cmd, args, { stdio: 'inherit' });
-    if (proc.code) {
-      throw `Command '${full_cmd}' failed with code: ${proc.code}`
-    }
+  if (!cmd) {
+    throw new Error(`Invalid command: '${full_cmd}'`);
+  }
+  const child = spawn(cmd, args);
+
+  for await (const chunk of child.stdout) {
+    console.log(chunk);
+  }
+  for await (const chunk of child.stderr) {
+    console.error(chunk);
+  }
+  const exitCode = await new Promise((resolve, reject) => {
+    child.on('close', resolve);
+  });
+
+  if (exitCode) {
+    throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
   }
 }
 
@@ -27,9 +38,9 @@ async function run(): Promise<void> {
     core.debug(`Inputs: ${inspect(inputs)}`);
 
     const [cfg_url, cfg_dir] = inputs.conan_config.split('|');
-    const [repo_name, repo_user, repo_password] = inputs.conan_repo.split('|')
+    const [repo_name, repo_user, repo_password] = inputs.conan_repo.split('|');
 
-    const conan_path = `${process.env.HOME}/.local/bin/conan`
+    const conan_path = `${process.env.HOME}/.local/bin/conan`;
     exec(`${conan_path} config install ${cfg_url} -sf ${cfg_dir}`);
     exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
     exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
