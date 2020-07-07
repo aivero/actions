@@ -89,7 +89,7 @@ async function run(): Promise<void> {
         );
         const folder: string = conf.versions[version].folder;
         const { stdout, stderr } = await exec_prom(
-          `~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`
+          `~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`,
         );
         core.debug(stderr);
         const recipe = YAML.parse(stdout);
@@ -100,9 +100,9 @@ async function run(): Promise<void> {
             switch (os) {
               case "Linux":
                 recipe.settings.arch_build.forEach((arch) => {
-                  const tags = ["ubuntu-18.04"];
+                  let tags = ["ubuntu-18.04"];
                   if (arch == "armv8") {
-                    tags.push("ARM64");
+                    tags = ["ARM64"];
                   }
                   combinations.push({
                     tags: tags,

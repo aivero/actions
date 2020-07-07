@@ -5493,9 +5493,9 @@ function run() {
                             switch (os) {
                                 case "Linux":
                                     recipe.settings.arch_build.forEach((arch) => {
-                                        const tags = ["ubuntu-18.04"];
+                                        let tags = ["ubuntu-18.04"];
                                         if (arch == "armv8") {
-                                            tags.push("ARM64");
+                                            tags = ["ARM64"];
                                         }
                                         combinations.push({
                                             tags: tags,
