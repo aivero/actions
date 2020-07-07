@@ -167,14 +167,12 @@ function run() {
                 conan_repo: core.getInput("conan_repo"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
-            const [cfg_url, cfg_dir] = inputs.conan_config.split('|');
-            const [repo_name, repo_user, repo_password] = inputs.conan_repo.split('|');
             const conan_path = `${process.env.HOME}/.local/bin/conan`;
-            yield exec(`${conan_path} config install ${cfg_url} -sf ${cfg_dir}`);
-            yield exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
+            yield exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
+            yield exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
             yield exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
-            yield exec(`${conan_path} upload ${inputs.package} --all -c -r ${repo_name}`);
+            yield exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
         }
         catch (error) {
             core.debug(util_1.inspect(error));

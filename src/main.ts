@@ -42,15 +42,12 @@ async function run(): Promise<void> {
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
-    const [cfg_url, cfg_dir] = inputs.conan_config.split('|');
-    const [repo_name, repo_user, repo_password] = inputs.conan_repo.split('|');
-
     const conan_path = `${process.env.HOME}/.local/bin/conan`;
-    await exec(`${conan_path} config install ${cfg_url} -sf ${cfg_dir}`);
-    await exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
+    await exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
+    await exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
     await exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
     await exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
-    await exec(`${conan_path} upload ${inputs.package} --all -c -r ${repo_name}`);
+    await exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
 
   } catch (error) {
     core.debug(inspect(error));
