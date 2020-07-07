@@ -174,7 +174,7 @@ function run() {
             yield exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
             yield exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
-            yield exec(`${conan_path} upload ${inputs.package} -r ${repo_name}`);
+            yield exec(`${conan_path} upload ${inputs.package} -c -r ${repo_name}`);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
