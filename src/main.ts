@@ -50,7 +50,7 @@ async function run(): Promise<void> {
     await exec(`${conan_path} user ${repo_user} -p ${repo_password} -r ${repo_name}`);
     await exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
     await exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
-    await exec(`${conan_path} upload ${inputs.package} -c -r ${repo_name}`);
+    await exec(`${conan_path} upload ${inputs.package} --all -c -r ${repo_name}`);
 
   } catch (error) {
     core.debug(inspect(error));
