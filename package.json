@@ -27,8 +27,7 @@
     "@actions/core": "1.2.4",
     "@actions/github": "3.0.0",
     "simple-git": "^2.7.0",
-    "yaml": "^1.10.0",
-    "await-spawn": "^3.0.0"
+    "yaml": "^1.10.0"
   },
   "devDependencies": {
     "@types/jest": "25.2.3",
