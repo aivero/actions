@@ -132,17 +132,17 @@ async function run(): Promise<void> {
           });
         } else {
           // Build cross os/arch packages on Linux x86_64
-          combinations.push({ tags: [], profile: `Linux-x86_64` });
+          combinations.push({ tags: ["ubuntu-18.04"], profile: `Linux-x86_64` });
         }
 
         // Dispatch Conan events
         combinations.forEach(async (comb) => {
           const payload = {
-            package: pkg,
-            version: version,
+            package: `${pkg}/${version}`,
             path: path.join('recipes', pkg, folder),
             tags: comb.tags,
             profile: comb.profile,
+            conan_repo: "aivero-public",
             ref: process.env.GITHUB_REF,
             sha: process.env.GITHUB_SHA,
           };
