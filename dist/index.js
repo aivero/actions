@@ -173,8 +173,6 @@ function run() {
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             const conan_path = `${process.env.HOME}/.local/bin/conan`;
             yield exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
-            // Workaround: Conan needs more time to fully load new config
-            yield sleep(1);
             yield exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
             yield exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);

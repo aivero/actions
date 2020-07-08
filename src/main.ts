@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import { inspect } from "util";
-import { spawn, ChildProcess } from "child_process";
+import { spawn } from "child_process";
 
 function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
@@ -48,10 +48,6 @@ async function run(): Promise<void> {
 
     const conan_path = `${process.env.HOME}/.local/bin/conan`;
     await exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
-
-    // Workaround: Conan needs more time to fully load new config
-    await sleep(1);
-
     await exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
     await exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
     await exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
