@@ -10,6 +10,7 @@ async function exec(full_cmd: string) {
     if (!cmd) {
       throw new Error(`Invalid command: '${full_cmd}'`);
     }
+    console.log(`Running command '${cmd}' with args: '${args}'`)
     const child = spawn(cmd, args);
 
     for await (const chunk of child.stdout) {

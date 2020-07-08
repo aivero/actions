@@ -116,6 +116,7 @@ function exec(full_cmd) {
             if (!cmd) {
                 throw new Error(`Invalid command: '${full_cmd}'`);
             }
+            console.log(`Running command '${cmd}' with args: '${args}'`);
             const child = child_process_1.spawn(cmd, args);
             try {
                 for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
