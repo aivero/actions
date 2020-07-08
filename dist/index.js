@@ -107,6 +107,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
+function sleep(millis) {
+    return new Promise(resolve => setTimeout(resolve, millis));
+}
 function exec(full_cmd) {
     var e_1, _a, e_2, _b;
     return __awaiter(this, void 0, void 0, function* () {
@@ -117,7 +120,7 @@ function exec(full_cmd) {
                 throw new Error(`Invalid command: '${full_cmd}'`);
             }
             console.log(`Running command '${cmd}' with args: '${args}'`);
-            const child = child_process_1.spawn(cmd, args);
+            const child = yield child_process_1.spawn(cmd, args, {});
             try {
                 for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
                     const chunk = _d.value;
@@ -170,6 +173,8 @@ function run() {
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             const conan_path = `${process.env.HOME}/.local/bin/conan`;
             yield exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
+            // Workaround: Conan needs more time to fully load new config
+            yield sleep(1);
             yield exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
             yield exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
