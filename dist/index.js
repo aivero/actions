@@ -5488,7 +5488,7 @@ function run() {
                     core.debug(stderr);
                     const recipe = yaml_1.default.parse(stdout);
                     const combinations = [];
-                    if ('os_build' in recipe.settings) {
+                    if ('settings' in recipe && 'os_build' in recipe.settings && 'arch_build' in recipe.settings) {
                         recipe.settings.os_build.forEach((os) => {
                             switch (os) {
                                 case "Linux":

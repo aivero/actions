@@ -95,7 +95,7 @@ async function run(): Promise<void> {
         const recipe = YAML.parse(stdout);
 
         const combinations: { tags; profile }[] = [];
-        if ('os_build' in recipe.settings) {
+        if ('settings' in recipe && 'os_build' in recipe.settings && 'arch_build' in recipe.settings) {
           recipe.settings.os_build.forEach((os) => {
             switch (os) {
               case "Linux":
