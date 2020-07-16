@@ -175,7 +175,7 @@ function run() {
             yield exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
             yield exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
-            yield exec(`${conan_path} create ${inputs.path} ${inputs.package}@`);
+            yield exec(`${conan_path} create -u ${inputs.path} ${inputs.package}@`);
             yield exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
         }
         catch (error) {
