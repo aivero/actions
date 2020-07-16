@@ -3,16 +3,15 @@ description: 'Run Conan tasks'
 inputs:
   package:
     description: 'Package name and version ({name}/{version})'
+    default:
   path:
     description: 'Package recipe folder path'
     default: .
   profile:
     description: 'Conan profile'
     default: default
-  conan_config:
-    description: 'Conan config url and subfolder ({url}|{subfolder})'
   conan_repo:
-    description: 'Conan repo ({name}|{username}|{password})'
+    description: 'Conan repo name'
 runs:
   using: 'node12'
   main: 'dist/index.js'

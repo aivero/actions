@@ -161,7 +161,6 @@ function run() {
                 package: core.getInput("package"),
                 path: core.getInput("path"),
                 profile: core.getInput("profile"),
-                conan_config: core.getInput("conan_config"),
                 conan_repo: core.getInput("conan_repo"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
