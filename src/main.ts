@@ -62,11 +62,11 @@ async function cleanup(): Promise<void> {
   }
 }
 
-// Main
-if (!process.env['STATE_isPost']) {
-  run()
-}
 // Post
-else {
+if (!!process.env['STATE_isPost']) {
   cleanup()
+}
+// Main
+else {
+  run()
 }

@@ -188,13 +188,13 @@ function cleanup() {
         }
     });
 }
-// Main
-if (!process.env['STATE_isPost']) {
-    run();
-}
 // Post
-else {
+if (!!process.env['STATE_isPost']) {
     cleanup();
+}
+// Main
+else {
+    run();
 }
 //# sourceMappingURL=main.js.map
 
