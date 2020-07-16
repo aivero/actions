@@ -113,50 +113,44 @@ function sleep(millis) {
 function exec(full_cmd) {
     var e_1, _a, e_2, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        let args = full_cmd.split(' ');
+        let cmd = args.shift();
+        if (!cmd) {
+            throw new Error(`Invalid command: '${full_cmd}'`);
+        }
+        console.log(`Running command '${cmd}' with args: '${args}'`);
+        const child = yield child_process_1.spawn(cmd, args, {});
         try {
-            let args = full_cmd.split(' ');
-            let cmd = args.shift();
-            if (!cmd) {
-                throw new Error(`Invalid command: '${full_cmd}'`);
-            }
-            console.log(`Running command '${cmd}' with args: '${args}'`);
-            const child = yield child_process_1.spawn(cmd, args, {});
-            try {
-                for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
-                    const chunk = _d.value;
-                    process.stdout.write(chunk);
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            try {
-                for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
-                    const chunk = _f.value;
-                    process.stderr.write(chunk);
-                }
-            }
-            catch (e_2_1) { e_2 = { error: e_2_1 }; }
-            finally {
-                try {
-                    if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
-                }
-                finally { if (e_2) throw e_2.error; }
-            }
-            const exitCode = yield new Promise((resolve, reject) => {
-                child.on('close', resolve);
-            });
-            if (exitCode) {
-                throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
+            for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
+                const chunk = _d.value;
+                process.stdout.write(chunk);
             }
         }
-        catch (error) {
-            core.debug(util_1.inspect(error));
-            core.setFailed(error.message);
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        try {
+            for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
+                const chunk = _f.value;
+                process.stderr.write(chunk);
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
+        const exitCode = yield new Promise((resolve, reject) => {
+            child.on('close', resolve);
+        });
+        if (exitCode) {
+            throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
         }
     });
 }
