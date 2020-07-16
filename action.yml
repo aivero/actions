@@ -16,6 +16,7 @@ inputs:
 runs:
   using: 'node12'
   main: 'dist/index.js'
+  post: dist/index.js
 branding:
   icon: 'target'
   color: 'gray-dark'

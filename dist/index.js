@@ -184,7 +184,25 @@ function run() {
         }
     });
 }
-run();
+function cleanup() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const conan_path = `${process.env.HOME}/.local/bin/conan`;
+            yield exec(`${conan_path} remove --locks`);
+        }
+        catch (error) {
+            core.warning(error.message);
+        }
+    });
+}
+// Main
+if (!process.env['STATE_isPost']) {
+    run();
+}
+// Post
+else {
+    cleanup();
+}
 //# sourceMappingURL=main.js.map
 
 /***/ }),

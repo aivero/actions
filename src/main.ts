@@ -59,4 +59,20 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+async function cleanup(): Promise<void> {
+  try {
+    const conan_path = `${process.env.HOME}/.local/bin/conan`;
+    await exec(`${conan_path} remove --locks`);
+  } catch (error) {
+    core.warning(error.message)
+  }
+}
+
+// Main
+if (!process.env['STATE_isPost']) {
+  run()
+}
+// Post
+else {
+  cleanup()
+}
