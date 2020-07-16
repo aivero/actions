@@ -107,6 +107,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
+const coreCommand = __importStar(__webpack_require__(431));
 function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
@@ -156,6 +157,8 @@ function exec(full_cmd) {
 }
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
+        // Always run post
+        coreCommand.issueCommand('save-state', { name: 'isPost' }, 'true');
         try {
             const inputs = {
                 package: core.getInput("package"),
@@ -177,7 +180,7 @@ function run() {
         }
     });
 }
-function cleanup() {
+function post() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const conan_path = `${process.env.HOME}/.local/bin/conan`;
@@ -188,13 +191,13 @@ function cleanup() {
         }
     });
 }
-// Post
-if (!!process.env['STATE_isPost']) {
-    cleanup();
-}
 // Main
-else {
+if (!process.env['STATE_isPost']) {
     run();
+}
+// Post
+else {
+    post();
 }
 //# sourceMappingURL=main.js.map
 

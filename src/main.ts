@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import { inspect } from "util";
 import { spawn } from "child_process";
+import * as coreCommand from '@actions/core/lib/command'
 
 function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
@@ -31,6 +32,8 @@ async function exec(full_cmd: string) {
 }
 
 async function run(): Promise<void> {
+  // Always run post
+  coreCommand.issueCommand('save-state', { name: 'isPost' }, 'true')
   try {
     const inputs = {
       package: core.getInput("package"),
@@ -53,7 +56,7 @@ async function run(): Promise<void> {
   }
 }
 
-async function cleanup(): Promise<void> {
+async function post(): Promise<void> {
   try {
     const conan_path = `${process.env.HOME}/.local/bin/conan`;
     await exec(`${conan_path} remove --locks`);
@@ -62,11 +65,11 @@ async function cleanup(): Promise<void> {
   }
 }
 
-// Post
-if (!!process.env['STATE_isPost']) {
-  cleanup()
-}
 // Main
-else {
+if (!process.env['STATE_isPost']) {
   run()
+}
+// Post
+else {
+  post()
 }
