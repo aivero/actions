@@ -13,18 +13,19 @@ async function exec(full_cmd: string) {
   if (!cmd) {
     throw new Error(`Invalid command: '${full_cmd}'`);
   }
-  console.log(`Running command '${cmd}' with args: '${args}'`)
+  core.startGroup(`Running command: '${full_cmd}'`)
   const child = await spawn(cmd, args, {});
 
   for await (const chunk of child.stdout) {
-    process.stdout.write(chunk);
+    core.info(chunk);
   }
   for await (const chunk of child.stderr) {
-    process.stderr.write(chunk);
+    core.debug(chunk);
   }
   const exitCode = await new Promise((resolve, reject) => {
     child.on('close', resolve);
   });
+  core.endGroup();
 
   if (exitCode) {
     throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
@@ -41,7 +42,7 @@ async function run(): Promise<void> {
       profile: core.getInput("profile"),
       conan_repo: core.getInput("conan_repo"),
     };
-    core.debug(`Inputs: ${inspect(inputs)}`);
+    core.info(`Inputs: ${inspect(inputs)}`);
 
     const conan_path = `${process.env.HOME}/.local/bin/conan`;
     await exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);

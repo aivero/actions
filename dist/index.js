@@ -119,12 +119,12 @@ function exec(full_cmd) {
         if (!cmd) {
             throw new Error(`Invalid command: '${full_cmd}'`);
         }
-        console.log(`Running command '${cmd}' with args: '${args}'`);
+        core.startGroup(`Running command: '${full_cmd}'`);
         const child = yield child_process_1.spawn(cmd, args, {});
         try {
             for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
                 const chunk = _d.value;
-                process.stdout.write(chunk);
+                core.info(chunk);
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
@@ -137,7 +137,7 @@ function exec(full_cmd) {
         try {
             for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
                 const chunk = _f.value;
-                process.stderr.write(chunk);
+                core.debug(chunk);
             }
         }
         catch (e_2_1) { e_2 = { error: e_2_1 }; }
@@ -150,6 +150,7 @@ function exec(full_cmd) {
         const exitCode = yield new Promise((resolve, reject) => {
             child.on('close', resolve);
         });
+        core.endGroup();
         if (exitCode) {
             throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
         }
@@ -166,7 +167,7 @@ function run() {
                 profile: core.getInput("profile"),
                 conan_repo: core.getInput("conan_repo"),
             };
-            core.debug(`Inputs: ${util_1.inspect(inputs)}`);
+            core.info(`Inputs: ${util_1.inspect(inputs)}`);
             const conan_path = `${process.env.HOME}/.local/bin/conan`;
             yield exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
             yield exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
