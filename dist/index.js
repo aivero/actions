@@ -5432,21 +5432,24 @@ function run() {
             const git = simple_git_1.default(repo_path);
             const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
             // Find package versions that needs to be build
+            core.startGroup('Find package versions that needs to be build');
             const build_versions = {};
             for (const f of diff.files) {
                 let file = f.file;
-                // Handle renaming
+                // Handle file renaming
                 if (file.includes(" => ")) {
+                    core.info(`Renamed: ${file}`);
                     file = file.replace(/{(.*) => .*}/, "$1");
                 }
                 const [root, pkg, conf_or_ver] = file.split("/");
-                if (!(pkg in build_versions)) {
-                    build_versions[pkg] = new Set();
-                }
                 // Only handle changed files in recipe folder and
                 // only handle files that exist in current commit
                 if (root != "recipes" || !fs_1.default.existsSync(path.join(repo_path, file))) {
                     continue;
+                }
+                // Create set with package versions to be build
+                if (!(pkg in build_versions)) {
+                    build_versions[pkg] = new Set();
                 }
                 // Handle config.yml changes
                 if (conf_or_ver == "config.yml") {
@@ -5454,10 +5457,15 @@ function run() {
                     const conf_new = yaml_1.default.parse(yield git.show(["HEAD:" + file]));
                     const files_old = yield git.raw(["ls-tree", "-r", "HEAD^"]);
                     if (!files_old.includes(file)) {
-                        Object.keys(conf_new.versions).forEach((version) => build_versions[pkg].add(version));
+                        core.info(`Created: ${pkg}/config.yml`);
+                        Object.keys(conf_new.versions).forEach((version) => {
+                            core.info(`Build pkg/ver: ${pkg}/${version}`);
+                            build_versions[pkg].add(version);
+                        });
                         continue;
                     }
                     // Compare to old config.yml
+                    core.info(`Changed: ${pkg}/config.yml`);
                     const conf_old = yaml_1.default.parse(yield git.show(["HEAD^:" + file]));
                     Object.keys(conf_new.versions).forEach((version) => {
                         // Check if version existed in old commit or
@@ -5465,28 +5473,33 @@ function run() {
                         if (version in conf_old.versions === false ||
                             conf_new.versions[version].folder !=
                                 conf_old.versions[version].folder) {
+                            core.info(`Build pkg/ver: ${pkg}/${version}`);
                             build_versions[pkg].add(version);
                         }
                     });
                 }
                 else {
                     // Handle {pkg-name}/{pkg-version}/* changes
-                    const conf = yaml_1.default.parse(yield git.show(["HEAD:recipes/" + pkg + "/config.yml"]));
+                    const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
                     Object.keys(conf.versions).forEach((version) => {
                         if (conf.versions[version].folder == conf_or_ver) {
+                            core.info(`Build pkg/ver: ${pkg}/${version}`);
                             build_versions[pkg].add(version);
                         }
                     });
                 }
             }
+            core.endGroup();
             // Extract build settings (os, arch, profile)
             for (const [pkg, versions] of Object.entries(build_versions)) {
                 for (const version of versions) {
-                    const conf = yaml_1.default.parse(yield git.show(["HEAD:recipes/" + pkg + "/config.yml"]));
+                    // Extract settings from conanfile as yaml
+                    const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
                     const folder = conf.versions[version].folder;
                     const { stdout, stderr } = yield exec_prom(`~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
                     core.debug(stderr);
                     const recipe = yaml_1.default.parse(stdout);
+                    // Get build combinations
                     const combinations = [];
                     if ('settings' in recipe && 'os_build' in recipe.settings && 'arch_build' in recipe.settings) {
                         recipe.settings.os_build.forEach((os) => {
@@ -5529,6 +5542,7 @@ function run() {
                         combinations.push({ tags: ["ubuntu-18.04"], profile: `Linux-x86_64` });
                     }
                     // Dispatch Conan events
+                    core.startGroup('Dispatch Conan Events');
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
                         const payload = {
                             package: `${pkg}/${version}`,
@@ -5539,7 +5553,7 @@ function run() {
                             ref: process.env.GITHUB_REF,
                             sha: process.env.GITHUB_SHA,
                         };
-                        core.debug(`${util_1.inspect(payload)}`);
+                        core.info(`${util_1.inspect(payload)}`);
                         yield octokit.repos.createDispatchEvent({
                             owner: owner,
                             repo: repo,
@@ -5547,6 +5561,7 @@ function run() {
                             client_payload: payload,
                         });
                     }));
+                    core.endGroup();
                 }
             }
         }
