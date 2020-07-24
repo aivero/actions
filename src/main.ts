@@ -19,13 +19,14 @@ async function exec(full_cmd: string) {
   for await (const chunk of child.stdout) {
     core.info(chunk);
   }
+  core.endGroup();
+
   for await (const chunk of child.stderr) {
     core.error(chunk.toString('utf8'));
   }
   const exitCode = await new Promise((resolve, reject) => {
     child.on('close', resolve);
   });
-  core.endGroup();
 
   if (exitCode) {
     throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);

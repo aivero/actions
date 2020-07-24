@@ -134,6 +134,7 @@ function exec(full_cmd) {
             }
             finally { if (e_1) throw e_1.error; }
         }
+        core.endGroup();
         try {
             for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
                 const chunk = _f.value;
@@ -150,7 +151,6 @@ function exec(full_cmd) {
         const exitCode = yield new Promise((resolve, reject) => {
             child.on('close', resolve);
         });
-        core.endGroup();
         if (exitCode) {
             throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
         }
