@@ -152,7 +152,7 @@ function exec(full_cmd) {
             child.on('close', resolve);
         });
         if (exitCode) {
-            throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
+            throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
         }
     });
 }

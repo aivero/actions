@@ -29,7 +29,7 @@ async function exec(full_cmd: string) {
   });
 
   if (exitCode) {
-    throw new Error(`Command '${cmd}' failed with code: ${exitCode}`);
+    throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
   }
 }
 
