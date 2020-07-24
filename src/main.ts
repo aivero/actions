@@ -20,7 +20,7 @@ async function exec(full_cmd: string) {
     core.info(chunk);
   }
   for await (const chunk of child.stderr) {
-    core.error(chunk);
+    core.error(chunk.toString('utf8'));
   }
   const exitCode = await new Promise((resolve, reject) => {
     child.on('close', resolve);

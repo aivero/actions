@@ -137,7 +137,7 @@ function exec(full_cmd) {
         try {
             for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
                 const chunk = _f.value;
-                core.error(chunk);
+                core.error(chunk.toString('utf8'));
             }
         }
         catch (e_2_1) { e_2 = { error: e_2_1 }; }
