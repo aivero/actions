@@ -7,7 +7,7 @@ function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
 
-async function exec(full_cmd: string) {
+async function exec(full_cmd: string, fail_on_error = true) {
   let args = full_cmd.split(' ');
   let cmd = args.shift();
   if (!cmd) {
@@ -22,13 +22,17 @@ async function exec(full_cmd: string) {
   core.endGroup();
 
   for await (const chunk of child.stderr) {
-    core.error(chunk.toString('utf8'));
+    if (fail_on_error) {
+      core.error(chunk.toString('utf8'));
+    } else {
+      core.info(chunk.toString('utf8'));
+    }
   }
   const exitCode = await new Promise((resolve, reject) => {
     child.on('close', resolve);
   });
 
-  if (exitCode) {
+  if (exitCode && fail_on_error) {
     throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
   }
 }
@@ -51,6 +55,8 @@ async function run(): Promise<void> {
     await exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
     await exec(`${conan_path} create -u ${inputs.path} ${inputs.package}@`);
     await exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
+    await exec(`${conan_path} upload ${inputs.package}-dev --all -c -r ${inputs.conan_repo}`, false);
+    await exec(`${conan_path} upload ${inputs.package}-dbg --all -c -r ${inputs.conan_repo}`, false);
 
   } catch (error) {
     core.debug(inspect(error));

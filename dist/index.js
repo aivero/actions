@@ -111,7 +111,7 @@ const coreCommand = __importStar(__webpack_require__(431));
 function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
-function exec(full_cmd) {
+function exec(full_cmd, fail_on_error = true) {
     var e_1, _a, e_2, _b;
     return __awaiter(this, void 0, void 0, function* () {
         let args = full_cmd.split(' ');
@@ -138,7 +138,12 @@ function exec(full_cmd) {
         try {
             for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
                 const chunk = _f.value;
-                core.error(chunk.toString('utf8'));
+                if (fail_on_error) {
+                    core.error(chunk.toString('utf8'));
+                }
+                else {
+                    core.info(chunk.toString('utf8'));
+                }
             }
         }
         catch (e_2_1) { e_2 = { error: e_2_1 }; }
@@ -151,7 +156,7 @@ function exec(full_cmd) {
         const exitCode = yield new Promise((resolve, reject) => {
             child.on('close', resolve);
         });
-        if (exitCode) {
+        if (exitCode && fail_on_error) {
             throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
         }
     });
@@ -174,6 +179,8 @@ function run() {
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
             yield exec(`${conan_path} create -u ${inputs.path} ${inputs.package}@`);
             yield exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
+            yield exec(`${conan_path} upload ${inputs.package}-dev --all -c -r ${inputs.conan_repo}`, false);
+            yield exec(`${conan_path} upload ${inputs.package}-dbg --all -c -r ${inputs.conan_repo}`, false);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
