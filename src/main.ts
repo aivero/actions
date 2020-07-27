@@ -55,8 +55,11 @@ async function run(): Promise<void> {
     await exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
     await exec(`${conan_path} create -u ${inputs.path} ${inputs.package}@`);
     await exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
-    await exec(`${conan_path} upload ${inputs.package}-dev --all -c -r ${inputs.conan_repo}`, false);
-    await exec(`${conan_path} upload ${inputs.package}-dbg --all -c -r ${inputs.conan_repo}`, false);
+
+    // Upload dev and dbg packages
+    let [name, version] = inputs.package.split("/");
+    await exec(`${conan_path} upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
+    await exec(`${conan_path} upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
 
   } catch (error) {
     core.debug(inspect(error));

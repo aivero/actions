@@ -179,8 +179,10 @@ function run() {
             yield exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
             yield exec(`${conan_path} create -u ${inputs.path} ${inputs.package}@`);
             yield exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
-            yield exec(`${conan_path} upload ${inputs.package}-dev --all -c -r ${inputs.conan_repo}`, false);
-            yield exec(`${conan_path} upload ${inputs.package}-dbg --all -c -r ${inputs.conan_repo}`, false);
+            // Upload dev and dbg packages
+            let [name, version] = inputs.package.split("/");
+            yield exec(`${conan_path} upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
+            yield exec(`${conan_path} upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
