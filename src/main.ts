@@ -116,14 +116,14 @@ async function run(): Promise<void> {
                 recipe.settings.arch_build.forEach((arch) => {
                   let tags = ["ubuntu-18.04"];
                   let image = "aivero/conan:bionic";
-                  if (pkg.endsWith("-bootstrap")) {
-                    image += "-bootstrap";
-                  }
                   if (arch == "armv8") {
                     tags = ["ARM64"];
                     image += "-armv8";
                   } else {
                     image += "-x86_64"
+                  }
+                  if (pkg.endsWith("-bootstrap")) {
+                    image += "-bootstrap";
                   }
                   combinations.push({
                     tags: tags,
