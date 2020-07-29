@@ -68,8 +68,7 @@ async function run(): Promise<void> {
 
 async function post(): Promise<void> {
   try {
-    const conan_path = `${process.env.HOME}/.local/bin/conan`;
-    await exec(`${conan_path} remove --locks`);
+    await exec(`conan remove --locks`);
   } catch (error) {
     core.warning(error.message)
   }

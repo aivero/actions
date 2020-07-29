@@ -192,8 +192,7 @@ function run() {
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const conan_path = `${process.env.HOME}/.local/bin/conan`;
-            yield exec(`${conan_path} remove --locks`);
+            yield exec(`conan remove --locks`);
         }
         catch (error) {
             core.warning(error.message);
