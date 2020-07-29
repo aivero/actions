@@ -49,17 +49,16 @@ async function run(): Promise<void> {
     };
     core.info(`Inputs: ${inspect(inputs)}`);
 
-    const conan_path = `${process.env.HOME}/.local/bin/conan`;
-    await exec(`${conan_path} config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
-    await exec(`${conan_path} user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
-    await exec(`${conan_path} config set general.default_profile=${inputs.profile}`);
-    await exec(`${conan_path} create -u ${inputs.path} ${inputs.package}@`);
-    await exec(`${conan_path} upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
+    await exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
+    await exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
+    await exec(`conan config set general.default_profile=${inputs.profile}`);
+    await exec(`conan create -u ${inputs.path} ${inputs.package}@`);
+    await exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
 
     // Upload dev and dbg packages
     let [name, version] = inputs.package.split("/");
-    await exec(`${conan_path} upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
-    await exec(`${conan_path} upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
+    await exec(`conan upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
+    await exec(`conan upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
 
   } catch (error) {
     core.debug(inspect(error));
