@@ -102,25 +102,28 @@ async function run(): Promise<void> {
         );
         const folder: string = conf.versions[version].folder;
         const { stdout, stderr } = await exec_prom(
-          `~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`,
+          `conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`,
         );
         core.debug(stderr);
         const recipe = YAML.parse(stdout);
 
         // Get build combinations
-        const combinations: { tags; profile }[] = [];
+        const combinations: { tags; profile; image }[] = [];
         if ('settings' in recipe && 'os_build' in recipe.settings && 'arch_build' in recipe.settings) {
           recipe.settings.os_build.forEach((os) => {
             switch (os) {
               case "Linux":
                 recipe.settings.arch_build.forEach((arch) => {
                   let tags = ["ubuntu-18.04"];
+                  let image = "aivero/conan:bionic-x86_64";
                   if (arch == "armv8") {
                     tags = ["ARM64"];
+                    image = "aivero/conan:bionic-armv8";
                   }
                   combinations.push({
                     tags: tags,
                     profile: `Linux-${arch}`,
+                    image: image
                   });
                 });
                 break;
@@ -128,25 +131,28 @@ async function run(): Promise<void> {
                 combinations.push({
                   tags: ["windows-latest"],
                   profile: "Windows-x86_64",
+                  image: "aivero/conan:windows"
                 });
                 break;
               case "Macos":
                 combinations.push({
                   tags: ["macos-latest"],
                   profile: "Macos-x86_64",
+                  image: "aivero/conan:macos"
                 });
                 break;
               case "Wasi":
                 combinations.push({
                   tags: ["ubuntu-18.04"],
                   profile: "Wasi-wasm",
+                  image: "aivero/conan:bionic-x86_64",
                 });
                 break;
             }
           });
         } else {
           // Build cross os/arch packages on Linux x86_64
-          combinations.push({ tags: ["ubuntu-18.04"], profile: `Linux-x86_64` });
+          combinations.push({ tags: ["ubuntu-18.04"], profile: "Linux-x86_64", image: "aivero/conan:bionic-x86_64" });
         }
 
         // Dispatch Conan events
@@ -158,6 +164,7 @@ async function run(): Promise<void> {
             tags: comb.tags,
             profile: comb.profile,
             conan_repo: "aivero-public",
+            docker_image: comb.image,
             ref: process.env.GITHUB_REF,
             sha: process.env.GITHUB_SHA,
           };

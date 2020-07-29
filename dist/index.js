@@ -5496,7 +5496,7 @@ function run() {
                     // Extract settings from conanfile as yaml
                     const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
                     const folder = conf.versions[version].folder;
-                    const { stdout, stderr } = yield exec_prom(`~/.local/bin/conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
+                    const { stdout, stderr } = yield exec_prom(`conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
                     core.debug(stderr);
                     const recipe = yaml_1.default.parse(stdout);
                     // Get build combinations
@@ -5507,12 +5507,15 @@ function run() {
                                 case "Linux":
                                     recipe.settings.arch_build.forEach((arch) => {
                                         let tags = ["ubuntu-18.04"];
+                                        let image = "aivero/conan:bionic-x86_64";
                                         if (arch == "armv8") {
                                             tags = ["ARM64"];
+                                            image = "aivero/conan:bionic-armv8";
                                         }
                                         combinations.push({
                                             tags: tags,
                                             profile: `Linux-${arch}`,
+                                            image: image
                                         });
                                     });
                                     break;
@@ -5520,18 +5523,21 @@ function run() {
                                     combinations.push({
                                         tags: ["windows-latest"],
                                         profile: "Windows-x86_64",
+                                        image: "aivero/conan:windows"
                                     });
                                     break;
                                 case "Macos":
                                     combinations.push({
                                         tags: ["macos-latest"],
                                         profile: "Macos-x86_64",
+                                        image: "aivero/conan:macos"
                                     });
                                     break;
                                 case "Wasi":
                                     combinations.push({
                                         tags: ["ubuntu-18.04"],
                                         profile: "Wasi-wasm",
+                                        image: "aivero/conan:bionic-x86_64",
                                     });
                                     break;
                             }
@@ -5539,7 +5545,7 @@ function run() {
                     }
                     else {
                         // Build cross os/arch packages on Linux x86_64
-                        combinations.push({ tags: ["ubuntu-18.04"], profile: `Linux-x86_64` });
+                        combinations.push({ tags: ["ubuntu-18.04"], profile: "Linux-x86_64", image: "aivero/conan:bionic-x86_64" });
                     }
                     // Dispatch Conan events
                     core.startGroup('Dispatch Conan Events');
@@ -5550,6 +5556,7 @@ function run() {
                             tags: comb.tags,
                             profile: comb.profile,
                             conan_repo: "aivero-public",
+                            docker_image: comb.image,
                             ref: process.env.GITHUB_REF,
                             sha: process.env.GITHUB_SHA,
                         };
