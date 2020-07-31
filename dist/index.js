@@ -167,7 +167,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
         if (exitCode && fail_on_error) {
             throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
         }
-        return res;
+        return res.trim();
     });
 }
 function run() {

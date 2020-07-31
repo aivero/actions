@@ -42,7 +42,7 @@ async function exec(full_cmd: string, fail_on_error = true, return_stdout = fals
   if (exitCode && fail_on_error) {
     throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
   }
-  return res;
+  return res.trim();
 }
 
 async function run(): Promise<void> {
