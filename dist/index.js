@@ -183,7 +183,7 @@ function run() {
             let [name, version] = inputs.package.split("/");
             core.exportVariable('CONAN_PKG_NAME', name);
             core.exportVariable('CONAN_PKG_VERSION', version);
-            const conan_data_path = yield prom_exec('conan config get storage.path');
+            const conan_data_path = yield prom_exec('conan config get storage.path').stdout;
             core.exportVariable('CONAN_DATA_PATH', conan_data_path);
             core.exportVariable('CONAN_PKG_PATH', path_1.default.join(conan_data_path, name, version, '_', '_'));
             // Conan Setup
