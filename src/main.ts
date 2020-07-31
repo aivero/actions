@@ -4,14 +4,13 @@ import { spawn } from "child_process";
 import * as coreCommand from '@actions/core/lib/command'
 import { promisify } from "util";
 import path from "path";
-const prom_exec = promisify(require('child_process').exec)
 
 
 function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
 
-async function exec(full_cmd: string, fail_on_error = true) {
+async function exec(full_cmd: string, fail_on_error = true, return_stdout = false) {
   let args = full_cmd.split(' ');
   let cmd = args.shift();
   if (!cmd) {
@@ -20,8 +19,12 @@ async function exec(full_cmd: string, fail_on_error = true) {
   core.startGroup(`Running command: '${full_cmd}'`)
   const child = await spawn(cmd, args, {});
 
+  let res = ""
   for await (const chunk of child.stdout) {
     core.info(chunk);
+    if (return_stdout) {
+      res += chunk;
+    }
   }
   core.endGroup();
 
@@ -39,6 +42,7 @@ async function exec(full_cmd: string, fail_on_error = true) {
   if (exitCode && fail_on_error) {
     throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
   }
+  return res;
 }
 
 async function run(): Promise<void> {
@@ -57,7 +61,7 @@ async function run(): Promise<void> {
     let [name, version] = inputs.package.split("/");
     core.exportVariable('CONAN_PKG_NAME', name);
     core.exportVariable('CONAN_PKG_VERSION', version);
-    const conan_data_path = (await prom_exec('conan config get storage.path')).stdout;
+    const conan_data_path = await exec('conan config get storage.path', true, true);
     core.exportVariable('CONAN_DATA_PATH', conan_data_path);
     core.exportVariable('CONAN_PKG_PATH', path.join(conan_data_path, name, version, '_', '_'));
 

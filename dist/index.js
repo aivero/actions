@@ -111,13 +111,11 @@ const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
 const coreCommand = __importStar(__webpack_require__(431));
-const util_2 = __webpack_require__(669);
 const path_1 = __importDefault(__webpack_require__(622));
-const prom_exec = util_2.promisify(__webpack_require__(129).exec);
 function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
-function exec(full_cmd, fail_on_error = true) {
+function exec(full_cmd, fail_on_error = true, return_stdout = false) {
     var e_1, _a, e_2, _b;
     return __awaiter(this, void 0, void 0, function* () {
         let args = full_cmd.split(' ');
@@ -127,10 +125,14 @@ function exec(full_cmd, fail_on_error = true) {
         }
         core.startGroup(`Running command: '${full_cmd}'`);
         const child = yield child_process_1.spawn(cmd, args, {});
+        let res = "";
         try {
             for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
                 const chunk = _d.value;
                 core.info(chunk);
+                if (return_stdout) {
+                    res += chunk;
+                }
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
@@ -165,6 +167,7 @@ function exec(full_cmd, fail_on_error = true) {
         if (exitCode && fail_on_error) {
             throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
         }
+        return res;
     });
 }
 function run() {
@@ -183,7 +186,7 @@ function run() {
             let [name, version] = inputs.package.split("/");
             core.exportVariable('CONAN_PKG_NAME', name);
             core.exportVariable('CONAN_PKG_VERSION', version);
-            const conan_data_path = (yield prom_exec('conan config get storage.path')).stdout;
+            const conan_data_path = yield exec('conan config get storage.path', true, true);
             core.exportVariable('CONAN_DATA_PATH', conan_data_path);
             core.exportVariable('CONAN_PKG_PATH', path_1.default.join(conan_data_path, name, version, '_', '_'));
             // Conan Setup
