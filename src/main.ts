@@ -122,7 +122,7 @@ async function run(): Promise<void> {
                   } else {
                     image += "-x86_64"
                   }
-                  if (pkg.endsWith("-bootstrap")) {
+                  if (pkg.startsWith("bootstrap-")) {
                     image += "-bootstrap";
                   }
                   combinations.push({
