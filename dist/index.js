@@ -193,6 +193,8 @@ function run() {
             yield exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
             yield exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`conan config set general.default_profile=${inputs.profile}`);
+            // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
+            yield exec(`rm -rf $CONAN_PKG_PATH/source`);
             // Conan Create
             yield exec(`conan create -u ${inputs.path} ${inputs.package}@`);
             // Conan Upload

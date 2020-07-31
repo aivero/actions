@@ -70,6 +70,9 @@ async function run(): Promise<void> {
     await exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
     await exec(`conan config set general.default_profile=${inputs.profile}`);
 
+    // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
+    await exec(`rm -rf $CONAN_PKG_PATH/source`);
+
     // Conan Create
     await exec(`conan create -u ${inputs.path} ${inputs.package}@`);
 
