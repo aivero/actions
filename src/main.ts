@@ -57,7 +57,7 @@ async function run(): Promise<void> {
     let [name, version] = inputs.package.split("/");
     core.exportVariable('CONAN_PKG_NAME', name);
     core.exportVariable('CONAN_PKG_VERSION', version);
-    const conan_data_path = await prom_exec('conan config get storage.path').stdout;
+    const conan_data_path = (await prom_exec('conan config get storage.path')).stdout;
     core.exportVariable('CONAN_DATA_PATH', conan_data_path);
     core.exportVariable('CONAN_PKG_PATH', path.join(conan_data_path, name, version, '_', '_'));
 
