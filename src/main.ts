@@ -63,7 +63,8 @@ async function run(): Promise<void> {
     core.exportVariable('CONAN_PKG_VERSION', version);
     const conan_data_path = await exec('conan config get storage.path', true, true);
     core.exportVariable('CONAN_DATA_PATH', conan_data_path);
-    core.exportVariable('CONAN_PKG_PATH', path.join(conan_data_path, name, version, '_', '_'));
+    const conan_pkg_path = path.join(conan_data_path, name, version, '_', '_');
+    core.exportVariable('CONAN_PKG_PATH', conan_pkg_path);
 
     // Conan Setup
     await exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
@@ -71,7 +72,7 @@ async function run(): Promise<void> {
     await exec(`conan config set general.default_profile=${inputs.profile}`);
 
     // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
-    await exec(`rm -rf $CONAN_PKG_PATH/source`);
+    await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
     // Conan Create
     await exec(`conan create -u ${inputs.path} ${inputs.package}@`);

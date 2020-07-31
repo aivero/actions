@@ -188,13 +188,14 @@ function run() {
             core.exportVariable('CONAN_PKG_VERSION', version);
             const conan_data_path = yield exec('conan config get storage.path', true, true);
             core.exportVariable('CONAN_DATA_PATH', conan_data_path);
-            core.exportVariable('CONAN_PKG_PATH', path_1.default.join(conan_data_path, name, version, '_', '_'));
+            const conan_pkg_path = path_1.default.join(conan_data_path, name, version, '_', '_');
+            core.exportVariable('CONAN_PKG_PATH', conan_pkg_path);
             // Conan Setup
             yield exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
             yield exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`conan config set general.default_profile=${inputs.profile}`);
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
-            yield exec(`rm -rf $CONAN_PKG_PATH/source`);
+            yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
             // Conan Create
             yield exec(`conan create -u ${inputs.path} ${inputs.package}@`);
             // Conan Upload
