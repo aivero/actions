@@ -103,11 +103,17 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
 const coreCommand = __importStar(__webpack_require__(431));
+const util_2 = __webpack_require__(669);
+const path_1 = __importDefault(__webpack_require__(622));
+const prom_exec = util_2.promisify(__webpack_require__(129).exec);
 function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
@@ -173,13 +179,21 @@ function run() {
                 conan_repo: core.getInput("conan_repo"),
             };
             core.info(`Inputs: ${util_1.inspect(inputs)}`);
+            // Store package data in environment variables, so they can be used by later Github actions
+            let [name, version] = inputs.package.split("/");
+            core.exportVariable('CONAN_PKG_NAME', name);
+            core.exportVariable('CONAN_PKG_VERSION', version);
+            const conan_data_path = yield prom_exec('conan config get storage.path');
+            core.exportVariable('CONAN_DATA_PATH', conan_data_path);
+            core.exportVariable('CONAN_PKG_PATH', path_1.default.join(conan_data_path, name, version, '_', '_'));
+            // Conan Setup
             yield exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
             yield exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
             yield exec(`conan config set general.default_profile=${inputs.profile}`);
+            // Conan Create
             yield exec(`conan create -u ${inputs.path} ${inputs.package}@`);
+            // Conan Upload
             yield exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
-            // Upload dev and dbg packages
-            let [name, version] = inputs.package.split("/");
             yield exec(`conan upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
             yield exec(`conan upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
         }

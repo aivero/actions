@@ -2,6 +2,10 @@ import * as core from "@actions/core";
 import { inspect } from "util";
 import { spawn } from "child_process";
 import * as coreCommand from '@actions/core/lib/command'
+import { promisify } from "util";
+import path from "path";
+const prom_exec = promisify(require('child_process').exec)
+
 
 function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
@@ -49,14 +53,24 @@ async function run(): Promise<void> {
     };
     core.info(`Inputs: ${inspect(inputs)}`);
 
+    // Store package data in environment variables, so they can be used by later Github actions
+    let [name, version] = inputs.package.split("/");
+    core.exportVariable('CONAN_PKG_NAME', name);
+    core.exportVariable('CONAN_PKG_VERSION', version);
+    const conan_data_path = await prom_exec('conan config get storage.path');
+    core.exportVariable('CONAN_DATA_PATH', conan_data_path);
+    core.exportVariable('CONAN_PKG_PATH', path.join(conan_data_path, name, version, '_', '_'));
+
+    // Conan Setup
     await exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
     await exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
     await exec(`conan config set general.default_profile=${inputs.profile}`);
-    await exec(`conan create -u ${inputs.path} ${inputs.package}@`);
-    await exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
 
-    // Upload dev and dbg packages
-    let [name, version] = inputs.package.split("/");
+    // Conan Create
+    await exec(`conan create -u ${inputs.path} ${inputs.package}@`);
+
+    // Conan Upload
+    await exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
     await exec(`conan upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
     await exec(`conan upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
 
