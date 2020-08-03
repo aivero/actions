@@ -114,21 +114,25 @@ async function run(): Promise<void> {
             switch (os) {
               case "Linux":
                 recipe.settings.arch_build.forEach((arch) => {
-                  let tags = ["x64"];
-                  let image = "aivero/conan:bionic";
-                  if (arch == "armv8") {
-                    tags = ["ARM64"];
-                    image += "-armv8";
-                  } else {
-                    image += "-x86_64"
-                  }
-                  if (pkg.startsWith("bootstrap-")) {
-                    image += "-bootstrap";
-                  }
-                  combinations.push({
-                    tags: tags,
-                    profile: `Linux-${arch}`,
-                    image: image
+                  recipe.settings.libc_build.forEach((libc) => {
+                    let tags = ["x64"];
+                    let profile = `Linux-${arch}`
+                    let image = `aivero/conan:bionic-${arch}`;
+                    if (libc == "musl") {
+                      profile += "-musl"
+                      image = `aivero/conan:alpine-${arch}`;
+                    }
+                    if (arch == "armv8") {
+                      tags = ["ARM64"];
+                    }
+                    if (pkg.startsWith("bootstrap-")) {
+                      image += "-bootstrap";
+                    }
+                    combinations.push({
+                      tags: tags,
+                      profile: profile,
+                      image: image
+                    });
                   });
                 });
                 break;
