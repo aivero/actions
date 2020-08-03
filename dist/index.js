@@ -5506,7 +5506,7 @@ function run() {
                             switch (os) {
                                 case "Linux":
                                     recipe.settings.arch_build.forEach((arch) => {
-                                        let tags = ["ubuntu-18.04"];
+                                        let tags = ["x64"];
                                         let image = "aivero/conan:bionic";
                                         if (arch == "armv8") {
                                             tags = ["ARM64"];
