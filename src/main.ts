@@ -128,11 +128,14 @@ async function run(): Promise<void> {
                     if (pkg.startsWith("bootstrap-")) {
                       image += "-bootstrap";
                     }
-                    combinations.push({
-                      tags: tags,
-                      profile: profile,
-                      image: image
-                    });
+                    // Github Actions do not support armv8 musl
+                    if (arch != "armv8" && libc != "musl") {
+                      combinations.push({
+                        tags: tags,
+                        profile: profile,
+                        image: image
+                      });
+                    }
                   });
                 });
                 break;
