@@ -5521,7 +5521,7 @@ function run() {
                                                 image += "-bootstrap";
                                             }
                                             // Github Actions do not support armv8 musl
-                                            if (arch != "armv8" && libc != "musl") {
+                                            if (arch != "armv8" || libc != "musl") {
                                                 combinations.push({
                                                     tags: tags,
                                                     profile: profile,
