@@ -81,7 +81,6 @@ async function run(): Promise<void> {
     await exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
     await exec(`conan upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
     await exec(`conan upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
-
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
@@ -91,6 +90,7 @@ async function run(): Promise<void> {
 async function post(): Promise<void> {
   try {
     await exec(`conan remove --locks`);
+    await exec(`conan remove "*" -f`);
   } catch (error) {
     core.warning(error.message)
   }
