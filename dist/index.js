@@ -5505,8 +5505,8 @@ function run() {
                         recipe.settings.os_build.forEach((os) => {
                             switch (os) {
                                 case "Linux":
-                                    recipe.settings.arch_build.forEach((arch) => {
-                                        recipe.settings.libc_build.forEach((libc) => {
+                                    recipe.settings.libc_build.forEach((libc) => {
+                                        recipe.settings.arch_build.forEach((arch) => {
                                             let tags = ["x64"];
                                             let profile = `Linux-${arch}`;
                                             let image = `aivero/conan:bionic-${arch}`;
