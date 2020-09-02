@@ -64,11 +64,11 @@ async function run(): Promise<void> {
         const conf_old = YAML.parse(await git.show(["HEAD^:" + file]));
         Object.keys(conf_new.versions).forEach((version) => {
           // Check if version existed in old commit or
-          // check if folder name changed for version
+          // check if version data changed for version
           if (
             version in conf_old.versions === false ||
-            conf_new.versions[version].folder !=
-            conf_old.versions[version].folder
+            JSON.stringify(conf_new.versions[version]) !=
+            JSON.stringify(conf_old.versions[version])
           ) {
             core.info(`Build pkg/ver: ${pkg}/${version}`);
             build_versions[pkg].add(version);
