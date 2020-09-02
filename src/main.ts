@@ -4,11 +4,7 @@ import simpleGit from "simple-git";
 import { inspect } from "util";
 import YAML from "yaml";
 import fs from "fs";
-import { promisify } from "util";
-import { exec } from "child_process"
 import * as path from "path"
-import { openStdin } from "process";
-const exec_prom = promisify(exec);
 
 async function run(): Promise<void> {
   try {
@@ -101,71 +97,43 @@ async function run(): Promise<void> {
           await git.show([`HEAD:recipes/${pkg}/config.yml`])
         );
         const folder: string = conf.versions[version].folder;
-        const { stdout, stderr } = await exec_prom(
-          `conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`,
-        );
-        core.debug(stderr);
-        const recipe = YAML.parse(stdout);
 
         // Get build combinations
         const combinations: { tags; profile; image }[] = [];
-        if ('settings' in recipe && 'os_build' in recipe.settings && 'arch_build' in recipe.settings) {
-          recipe.settings.os_build.forEach((os) => {
-            switch (os) {
-              case "Linux":
-                recipe.settings.libc_build.forEach((libc) => {
-                  recipe.settings.arch_build.forEach((arch) => {
-                    let tags = ["x64"];
-                    let profile = `Linux-${arch}`
-                    let image = `aivero/conan:bionic-${arch}`;
-                    if (libc == "musl") {
-                      profile += "-musl"
-                      image = `aivero/conan:alpine-${arch}`;
-                    }
-                    if (arch == "armv8") {
-                      tags = ["ARM64"];
-                    }
-                    if (pkg.startsWith("bootstrap-")) {
-                      image += "-bootstrap";
-                    }
-                    // Github Actions do not support armv8 musl
-                    if (arch != "armv8" || libc != "musl") {
-                      combinations.push({
-                        tags: tags,
-                        profile: profile,
-                        image: image
-                      });
-                    }
-                  });
-                });
-                break;
-              case "Windows":
-                combinations.push({
-                  tags: ["windows-latest"],
-                  profile: "Windows-x86_64",
-                  image: "aivero/conan:windows"
-                });
-                break;
-              case "Macos":
-                combinations.push({
-                  tags: ["macos-latest"],
-                  profile: "Macos-x86_64",
-                  image: "aivero/conan:macos"
-                });
-                break;
-              case "Wasi":
-                combinations.push({
-                  tags: ["ubuntu-18.04"],
-                  profile: "Wasi-wasm",
-                  image: "aivero/conan:bionic-x86_64",
-                });
-                break;
-            }
+        conf.versions[version].profiles.forEach((profile) => {
+          let image = "aivero/conan:";
+          let tags = ["x64"];
+
+          // OS options
+          if (profile.includes("musl")) {
+            image += "alpine";
+          } else if (profile.includes("Linux") || profile.includes("Wasi")) {
+            image += "bionic";
+          } else if (profile.includes("Windows")) {
+            image += "windows";
+          } else if (profile.includes("Macos")) {
+            image += "macos";
+          }
+
+          // Arch options
+          if (profile.includes("x86_64") || profile.includes("wasm")) {
+            image += "-x86_64"
+          } else if (profile.includes("armv8")) {
+            image += "-armv8"
+            tags = ["ARM64"];
+          }
+
+          // Handle bootstrap packages
+          if (pkg.startsWith("bootstrap-")) {
+            image += "-bootstrap";
+          }
+
+          combinations.push({
+            tags: tags,
+            profile: profile,
+            image: image
           });
-        } else {
-          // Build cross os/arch packages on Linux x86_64
-          combinations.push({ tags: ["ubuntu-18.04"], profile: "Linux-x86_64", image: "aivero/conan:bionic-x86_64" });
-        }
+        });
 
         // Dispatch Conan events
         core.startGroup('Dispatch Conan Events')

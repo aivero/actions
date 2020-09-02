@@ -5411,10 +5411,7 @@ const simple_git_1 = __importDefault(__webpack_require__(964));
 const util_1 = __webpack_require__(669);
 const yaml_1 = __importDefault(__webpack_require__(596));
 const fs_1 = __importDefault(__webpack_require__(747));
-const util_2 = __webpack_require__(669);
-const child_process_1 = __webpack_require__(129);
 const path = __importStar(__webpack_require__(622));
-const exec_prom = util_2.promisify(child_process_1.exec);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -5496,69 +5493,42 @@ function run() {
                     // Extract settings from conanfile as yaml
                     const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
                     const folder = conf.versions[version].folder;
-                    const { stdout, stderr } = yield exec_prom(`conan inspect ${path.join(repo_path, 'recipes', pkg, folder)}`);
-                    core.debug(stderr);
-                    const recipe = yaml_1.default.parse(stdout);
                     // Get build combinations
                     const combinations = [];
-                    if ('settings' in recipe && 'os_build' in recipe.settings && 'arch_build' in recipe.settings) {
-                        recipe.settings.os_build.forEach((os) => {
-                            switch (os) {
-                                case "Linux":
-                                    recipe.settings.libc_build.forEach((libc) => {
-                                        recipe.settings.arch_build.forEach((arch) => {
-                                            let tags = ["x64"];
-                                            let profile = `Linux-${arch}`;
-                                            let image = `aivero/conan:bionic-${arch}`;
-                                            if (libc == "musl") {
-                                                profile += "-musl";
-                                                image = `aivero/conan:alpine-${arch}`;
-                                            }
-                                            if (arch == "armv8") {
-                                                tags = ["ARM64"];
-                                            }
-                                            if (pkg.startsWith("bootstrap-")) {
-                                                image += "-bootstrap";
-                                            }
-                                            // Github Actions do not support armv8 musl
-                                            if (arch != "armv8" || libc != "musl") {
-                                                combinations.push({
-                                                    tags: tags,
-                                                    profile: profile,
-                                                    image: image
-                                                });
-                                            }
-                                        });
-                                    });
-                                    break;
-                                case "Windows":
-                                    combinations.push({
-                                        tags: ["windows-latest"],
-                                        profile: "Windows-x86_64",
-                                        image: "aivero/conan:windows"
-                                    });
-                                    break;
-                                case "Macos":
-                                    combinations.push({
-                                        tags: ["macos-latest"],
-                                        profile: "Macos-x86_64",
-                                        image: "aivero/conan:macos"
-                                    });
-                                    break;
-                                case "Wasi":
-                                    combinations.push({
-                                        tags: ["ubuntu-18.04"],
-                                        profile: "Wasi-wasm",
-                                        image: "aivero/conan:bionic-x86_64",
-                                    });
-                                    break;
-                            }
+                    conf.versions[version].profiles.forEach((profile) => {
+                        let image = "aivero/conan:";
+                        let tags = ["x64"];
+                        // OS options
+                        if (profile.includes("musl")) {
+                            image += "alpine";
+                        }
+                        else if (profile.includes("Linux") || profile.includes("Wasi")) {
+                            image += "bionic";
+                        }
+                        else if (profile.includes("Windows")) {
+                            image += "windows";
+                        }
+                        else if (profile.includes("Macos")) {
+                            image += "macos";
+                        }
+                        // Arch options
+                        if (profile.includes("x86_64") || profile.includes("wasm")) {
+                            image += "-x86_64";
+                        }
+                        else if (profile.includes("armv8")) {
+                            image += "-armv8";
+                            tags = ["ARM64"];
+                        }
+                        // Handle bootstrap packages
+                        if (pkg.startsWith("bootstrap-")) {
+                            image += "-bootstrap";
+                        }
+                        combinations.push({
+                            tags: tags,
+                            profile: profile,
+                            image: image
                         });
-                    }
-                    else {
-                        // Build cross os/arch packages on Linux x86_64
-                        combinations.push({ tags: ["ubuntu-18.04"], profile: "Linux-x86_64", image: "aivero/conan:bionic-x86_64" });
-                    }
+                    });
                     // Dispatch Conan events
                     core.startGroup('Dispatch Conan Events');
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
