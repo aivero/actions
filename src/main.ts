@@ -90,7 +90,7 @@ async function run(): Promise<void> {
 async function post(): Promise<void> {
   try {
     await exec(`conan remove --locks`);
-    await exec(`conan remove "*" -f`);
+    await exec(`conan remove '*' -f`);
   } catch (error) {
     core.warning(error.message)
   }

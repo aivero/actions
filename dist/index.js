@@ -213,7 +213,7 @@ function post() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield exec(`conan remove --locks`);
-            yield exec(`conan remove "*" -f`);
+            yield exec(`conan remove '*' -f`);
         }
         catch (error) {
             core.warning(error.message);
