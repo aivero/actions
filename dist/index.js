@@ -113,12 +113,12 @@ const child_process_1 = __webpack_require__(129);
 const coreCommand = __importStar(__webpack_require__(431));
 const path_1 = __importDefault(__webpack_require__(622));
 function sleep(millis) {
-    return new Promise(resolve => setTimeout(resolve, millis));
+    return new Promise((resolve) => setTimeout(resolve, millis));
 }
 function exec(full_cmd, fail_on_error = true, return_stdout = false) {
     var e_1, _a, e_2, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        let args = full_cmd.split(' ');
+        let args = full_cmd.split(" ");
         let cmd = args.shift();
         if (!cmd) {
             throw new Error(`Invalid command: '${full_cmd}'`);
@@ -147,10 +147,10 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
                 const chunk = _f.value;
                 if (fail_on_error) {
-                    core.error(chunk.toString('utf8'));
+                    core.error(chunk.toString("utf8"));
                 }
                 else {
-                    core.info(chunk.toString('utf8'));
+                    core.info(chunk.toString("utf8"));
                 }
             }
         }
@@ -162,7 +162,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             finally { if (e_2) throw e_2.error; }
         }
         const exitCode = yield new Promise((resolve, reject) => {
-            child.on('close', resolve);
+            child.on("close", resolve);
         });
         if (exitCode && fail_on_error) {
             throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
@@ -173,7 +173,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         // Always run post
-        coreCommand.issueCommand('save-state', { name: 'isPost' }, 'true');
+        coreCommand.issueCommand("save-state", { name: "isPost" }, "true");
         try {
             const inputs = {
                 package: core.getInput("package"),
@@ -184,12 +184,12 @@ function run() {
             core.info(`Inputs: ${util_1.inspect(inputs)}`);
             // Store package data in environment variables, so they can be used by later Github actions
             let [name, version] = inputs.package.split("/");
-            core.exportVariable('CONAN_PKG_NAME', name);
-            core.exportVariable('CONAN_PKG_VERSION', version);
-            const conan_data_path = yield exec('conan config get storage.path', true, true);
-            core.exportVariable('CONAN_DATA_PATH', conan_data_path);
-            const conan_pkg_path = path_1.default.join(conan_data_path, name, version, '_', '_');
-            core.exportVariable('CONAN_PKG_PATH', conan_pkg_path);
+            core.exportVariable("CONAN_PKG_NAME", name);
+            core.exportVariable("CONAN_PKG_VERSION", version);
+            const conan_data_path = yield exec("conan config get storage.path", true, true);
+            core.exportVariable("CONAN_DATA_PATH", conan_data_path);
+            const conan_pkg_path = path_1.default.join(conan_data_path, name, version, "_", "_");
+            core.exportVariable("CONAN_PKG_PATH", conan_pkg_path);
             // Conan Setup
             yield exec(`conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`);
             yield exec(`conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`);
@@ -200,8 +200,8 @@ function run() {
             yield exec(`conan create -u ${inputs.path} ${inputs.package}@`);
             // Conan Upload
             yield exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
-            yield exec(`conan upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`, false);
-            yield exec(`conan upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`, false);
+            yield exec(`conan upload ${name}-dev/${version} --force --all -c -r ${inputs.conan_repo}`, false);
+            yield exec(`conan upload ${name}-dbg/${version} --force --all -c -r ${inputs.conan_repo}`, false);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
@@ -221,10 +221,9 @@ function post() {
     });
 }
 // Main
-if (!process.env['STATE_isPost']) {
+if (!process.env["STATE_isPost"]) {
     run();
-}
-// Post
+} // Post
 else {
     post();
 }
