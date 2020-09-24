@@ -87,19 +87,25 @@ async function run(): Promise<void> {
 
     // Conan Create
     await exec(`conan create -u ${inputs.path} ${inputs.package}@`);
+    if (!name.startsWith("bootstrap-")) {
+      await exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
+      await exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
+    }
 
     // Conan Upload
     await exec(
       `conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`,
     );
-    await exec(
-      `conan upload ${name}-dev/${version} --force --all -c -r ${inputs.conan_repo}`,
-      false,
-    );
-    await exec(
-      `conan upload ${name}-dbg/${version} --force --all -c -r ${inputs.conan_repo}`,
-      false,
-    );
+    if (!name.startsWith("bootstrap-")) {
+      await exec(
+        `conan upload ${name}-dev/${version} --force --all -c -r ${inputs.conan_repo}`,
+        false,
+      );
+      await exec(
+        `conan upload ${name}-dbg/${version} --force --all -c -r ${inputs.conan_repo}`,
+        false,
+      );
+    }
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);

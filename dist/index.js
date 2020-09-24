@@ -198,10 +198,16 @@ function run() {
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
             // Conan Create
             yield exec(`conan create -u ${inputs.path} ${inputs.package}@`);
+            if (!name.startsWith("bootstrap-")) {
+                yield exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
+                yield exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
+            }
             // Conan Upload
             yield exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
-            yield exec(`conan upload ${name}-dev/${version} --force --all -c -r ${inputs.conan_repo}`, false);
-            yield exec(`conan upload ${name}-dbg/${version} --force --all -c -r ${inputs.conan_repo}`, false);
+            if (!name.startsWith("bootstrap-")) {
+                yield exec(`conan upload ${name}-dev/${version} --force --all -c -r ${inputs.conan_repo}`, false);
+                yield exec(`conan upload ${name}-dbg/${version} --force --all -c -r ${inputs.conan_repo}`, false);
+            }
         }
         catch (error) {
             core.debug(util_1.inspect(error));
