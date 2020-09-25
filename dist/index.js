@@ -112,6 +112,7 @@ const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
 const coreCommand = __importStar(__webpack_require__(431));
 const path_1 = __importDefault(__webpack_require__(622));
+const fs_1 = __importDefault(__webpack_require__(747));
 function sleep(millis) {
     return new Promise((resolve) => setTimeout(resolve, millis));
 }
@@ -170,6 +171,24 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
         return res.trim();
     });
 }
+function get_pkg_info(name, version) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const file = `/tmp/${name}.json`;
+        const pkg_info_raw = yield exec(`conan info ${name}/${version}@ --paths --json ${file}`, true, true);
+        const pkg_info_json = fs_1.default.readFileSync(file, "utf8");
+        return JSON.parse(pkg_info_json);
+    });
+}
+function upload_pkg(name, version, repo) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const info = get_pkg_info(name, version);
+        const pkg_path = info[0].package_folder;
+        // Only upload if package is not empty (Empty packages contain 2 files: conaninfo.txt and conanmanifest.txt)
+        if (fs_1.default.readdirSync(pkg_path).length > 2) {
+            yield exec(`conan upload ${name}/${version}  --all -c -r ${repo}`);
+        }
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         // Always run post
@@ -197,13 +216,13 @@ function run() {
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
             // Conan Create
-            yield exec(`conan create -u ${inputs.path} ${inputs.package}@`);
+            yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
             yield exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
             yield exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
             // Conan Upload
-            yield exec(`conan upload ${inputs.package} --all -c -r ${inputs.conan_repo}`);
-            yield exec(`conan upload ${name}-dev/${version} --all -c -r ${inputs.conan_repo}`);
-            yield exec(`conan upload ${name}-dbg/${version} --all -c -r ${inputs.conan_repo}`);
+            yield upload_pkg(name, version, inputs.conan_repo);
+            yield upload_pkg(`${name}-dev`, version, inputs.conan_repo);
+            yield upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
@@ -572,6 +591,13 @@ module.exports = require("path");
 /***/ (function(module) {
 
 module.exports = require("util");
+
+/***/ }),
+
+/***/ 747:
+/***/ (function(module) {
+
+module.exports = require("fs");
 
 /***/ })
 
