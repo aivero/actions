@@ -51,22 +51,18 @@ async function exec(
 
 async function get_pkg_info(name: string, version: string) {
   const file = `/tmp/${name}.json`;
-  const pkg_info_raw = await exec(
-    `conan info ${name}/${version}@ --paths --json ${file}`,
-    true,
-    true,
-  );
+  await exec(`conan info ${name}/${version}@ --paths --json ${file}`);
   const pkg_info_json = fs.readFileSync(file, "utf8");
   return JSON.parse(pkg_info_json);
 }
 
 async function upload_pkg(name: string, version: string, repo: string) {
-  const info = get_pkg_info(name, version);
+  const info = await get_pkg_info(name, version);
   const pkg_path = info[0].package_folder;
   // Only upload if package is not empty (Empty packages contain 2 files: conaninfo.txt and conanmanifest.txt)
   if (fs.readdirSync(pkg_path).length > 2) {
     await exec(
-      `conan upload ${name}/${version}  --all -c -r ${repo}`,
+      `conan upload ${name}/${version}@ --all -c -r ${repo}`,
     );
   }
 }
