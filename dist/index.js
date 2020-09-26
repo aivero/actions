@@ -215,14 +215,19 @@ function run() {
             yield exec(`conan config set general.default_profile=${inputs.profile}`);
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
-            // Conan Create
-            yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
-            yield exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
-            yield exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
-            // Conan Upload
-            yield upload_pkg(name, version, inputs.conan_repo);
-            yield upload_pkg(`${name}-dev`, version, inputs.conan_repo);
-            yield upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
+            // Conan Create and Upload
+            if (name.endsWith("-dev") || name.endsWith("-dbg")) {
+                yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
+                yield upload_pkg(name, version, inputs.conan_repo);
+            }
+            else {
+                yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
+                yield exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
+                yield exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
+                yield upload_pkg(name, version, inputs.conan_repo);
+                yield upload_pkg(`${name}-dev`, version, inputs.conan_repo);
+                yield upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
+            }
         }
         catch (error) {
             core.debug(util_1.inspect(error));
