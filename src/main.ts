@@ -105,9 +105,12 @@ async function run(): Promise<void> {
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
     // Conan Create and Upload
-    if (name.endsWith("-dev") || name.endsWith("-dbg")) {
+    if (name.endsWith("-dev")) {
       await exec(`conan create -u ${inputs.path} ${name}/${version}@`);
+      const name_dbg = `${name.slice(0, -4)}-dbg`;
+      await exec(`conan create -u ${inputs.path} ${name_dbg}/${version}@`);
       await upload_pkg(name, version, inputs.conan_repo);
+      await upload_pkg(name_dbg, version, inputs.conan_repo);
     } else {
       await exec(`conan create -u ${inputs.path} ${name}/${version}@`);
       await exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);

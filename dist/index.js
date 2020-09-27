@@ -216,9 +216,12 @@ function run() {
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
             // Conan Create and Upload
-            if (name.endsWith("-dev") || name.endsWith("-dbg")) {
+            if (name.endsWith("-dev")) {
                 yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
+                const name_dbg = `${name.slice(0, -4)}-dbg`;
+                yield exec(`conan create -u ${inputs.path} ${name_dbg}/${version}@`);
                 yield upload_pkg(name, version, inputs.conan_repo);
+                yield upload_pkg(name_dbg, version, inputs.conan_repo);
             }
             else {
                 yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
