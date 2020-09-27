@@ -179,12 +179,12 @@ function get_pkg_info(name, version) {
         return JSON.parse(pkg_info_json);
     });
 }
-function upload_pkg(name, version, repo) {
+function upload_pkg(name, version, repo, force_upload = false) {
     return __awaiter(this, void 0, void 0, function* () {
         const info = yield get_pkg_info(name, version);
         const pkg_path = info[0].package_folder;
         // Only upload if package is not empty (Empty packages contain 2 files: conaninfo.txt and conanmanifest.txt)
-        if (fs_1.default.readdirSync(pkg_path).length > 2) {
+        if (force_upload || fs_1.default.readdirSync(pkg_path).length > 2) {
             yield exec(`conan upload ${name}/${version}@ --all -c -r ${repo}`);
         }
     });
@@ -224,7 +224,7 @@ function run() {
                 yield exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
                 yield upload_pkg(`${name}-dev`, version, inputs.conan_repo);
             }
-            yield upload_pkg(name, version, inputs.conan_repo);
+            yield upload_pkg(name, version, inputs.conan_repo, true);
             yield upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
         }
         catch (error) {
