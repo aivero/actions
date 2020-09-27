@@ -4,7 +4,8 @@ import simpleGit from "simple-git";
 import { inspect } from "util";
 import YAML from "yaml";
 import fs from "fs";
-import * as path from "path"
+import * as path from "path";
+import { profile } from "console";
 
 async function run(): Promise<void> {
   try {
@@ -24,7 +25,7 @@ async function run(): Promise<void> {
     const diff = await git.diffSummary(["HEAD", "HEAD^"]);
 
     // Find package versions that needs to be build
-    core.startGroup('Find package versions that needs to be build')
+    core.startGroup("Find package versions that needs to be build");
     const build_versions: { [pkg: string]: Set<string> } = {};
     for (const f of diff.files) {
       let file = f.file;
@@ -68,7 +69,7 @@ async function run(): Promise<void> {
           if (
             version in conf_old.versions === false ||
             JSON.stringify(conf_new.versions[version]) !=
-            JSON.stringify(conf_old.versions[version])
+              JSON.stringify(conf_old.versions[version])
           ) {
             core.info(`Build pkg/ver: ${pkg}/${version}`);
             build_versions[pkg].add(version);
@@ -77,7 +78,7 @@ async function run(): Promise<void> {
       } else {
         // Handle {pkg-name}/{pkg-version}/* changes
         const conf = YAML.parse(
-          await git.show([`HEAD:recipes/${pkg}/config.yml`])
+          await git.show([`HEAD:recipes/${pkg}/config.yml`]),
         );
         Object.keys(conf.versions).forEach((version) => {
           if (conf.versions[version].folder == conf_or_ver) {
@@ -87,16 +88,26 @@ async function run(): Promise<void> {
         });
       }
     }
-    core.endGroup()
+    core.endGroup();
 
     // Extract build settings (os, arch, profile)
     for (const [pkg, versions] of Object.entries(build_versions)) {
       for (const version of versions) {
         // Extract settings from conanfile as yaml
         const conf = YAML.parse(
-          await git.show([`HEAD:recipes/${pkg}/config.yml`])
+          await git.show([`HEAD:recipes/${pkg}/config.yml`]),
         );
         const folder: string = conf.versions[version].folder;
+
+        // Default profiles
+        let profiles = [
+          "Linux-x86_64",
+          "Linux-x86_64-musl",
+          "Linux-armv8",
+        ];
+        if ("profiles" in conf.version[version]) {
+          profiles = conf.version[version].profiles;
+        }
 
         // Get build combinations
         const combinations: { tags; profile; image }[] = [];
@@ -117,9 +128,9 @@ async function run(): Promise<void> {
 
           // Arch options
           if (profile.includes("x86_64") || profile.includes("wasm")) {
-            image += "-x86_64"
+            image += "-x86_64";
           } else if (profile.includes("armv8")) {
-            image += "-armv8"
+            image += "-armv8";
             tags = ["ARM64"];
           }
 
@@ -131,16 +142,16 @@ async function run(): Promise<void> {
           combinations.push({
             tags: tags,
             profile: profile,
-            image: image
+            image: image,
           });
         });
 
         // Dispatch Conan events
-        core.startGroup('Dispatch Conan Events')
+        core.startGroup("Dispatch Conan Events");
         combinations.forEach(async (comb) => {
           const payload = {
             package: `${pkg}/${version}`,
-            path: path.join('recipes', pkg, folder),
+            path: path.join("recipes", pkg, folder),
             tags: comb.tags,
             profile: comb.profile,
             conan_repo: "aivero-public",
@@ -156,7 +167,7 @@ async function run(): Promise<void> {
             client_payload: payload,
           });
         });
-        core.endGroup()
+        core.endGroup();
       }
     }
   } catch (error) {

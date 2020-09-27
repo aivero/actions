@@ -5429,7 +5429,7 @@ function run() {
             const git = simple_git_1.default(repo_path);
             const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
             // Find package versions that needs to be build
-            core.startGroup('Find package versions that needs to be build');
+            core.startGroup("Find package versions that needs to be build");
             const build_versions = {};
             for (const f of diff.files) {
                 let file = f.file;
@@ -5493,6 +5493,15 @@ function run() {
                     // Extract settings from conanfile as yaml
                     const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
                     const folder = conf.versions[version].folder;
+                    // Default profiles
+                    let profiles = [
+                        "Linux-x86_64",
+                        "Linux-x86_64-musl",
+                        "Linux-armv8",
+                    ];
+                    if ("profiles" in conf.version[version]) {
+                        profiles = conf.version[version].profiles;
+                    }
                     // Get build combinations
                     const combinations = [];
                     conf.versions[version].profiles.forEach((profile) => {
@@ -5526,15 +5535,15 @@ function run() {
                         combinations.push({
                             tags: tags,
                             profile: profile,
-                            image: image
+                            image: image,
                         });
                     });
                     // Dispatch Conan events
-                    core.startGroup('Dispatch Conan Events');
+                    core.startGroup("Dispatch Conan Events");
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
                         const payload = {
                             package: `${pkg}/${version}`,
-                            path: path.join('recipes', pkg, folder),
+                            path: path.join("recipes", pkg, folder),
                             tags: comb.tags,
                             profile: comb.profile,
                             conan_repo: "aivero-public",
