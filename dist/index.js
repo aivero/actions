@@ -5499,8 +5499,8 @@ function run() {
                         "Linux-x86_64-musl",
                         "Linux-armv8",
                     ];
-                    if ("profiles" in conf.version[version]) {
-                        profiles = conf.version[version].profiles;
+                    if ("profiles" in conf.versions[version]) {
+                        profiles = conf.versions[version].profiles;
                     }
                     // Get build combinations
                     const combinations = [];
