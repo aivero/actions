@@ -111,7 +111,7 @@ async function run(): Promise<void> {
 
         // Get build combinations
         const combinations: { tags; profile; image }[] = [];
-        conf.versions[version].profiles.forEach((profile) => {
+        profiles.forEach((profile) => {
           let image = "aivero/conan:";
           let tags = ["x64"];
 

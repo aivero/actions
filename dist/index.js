@@ -5504,7 +5504,7 @@ function run() {
                     }
                     // Get build combinations
                     const combinations = [];
-                    conf.versions[version].profiles.forEach((profile) => {
+                    profiles.forEach((profile) => {
                         let image = "aivero/conan:";
                         let tags = ["x64"];
                         // OS options
