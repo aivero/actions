@@ -60,7 +60,7 @@ async function upload_pkg(
   name: string,
   version: string,
   repo: string,
-  force_upload = false,
+  force_upload = true,
 ) {
   const info = await get_pkg_info(name, version);
   const pkg_path = info[0].package_folder;
@@ -109,21 +109,13 @@ async function run(): Promise<void> {
     // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
-    // Check if development package should be build
-    const dev_pkg = !fs.readFileSync(
-      `${inputs.path}/conanfile.py`,
-      { encoding: "utf-8" },
-    ).includes("no_dev_pkg = True");
-
     // Conan Create and Upload
     await exec(`conan create -u ${inputs.path} ${name}/${version}@`);
     await exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
-    if (dev_pkg) {
-      await exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
-      await upload_pkg(`${name}-dev`, version, inputs.conan_repo);
-    }
-    await upload_pkg(name, version, inputs.conan_repo, true);
-    await upload_pkg(`${name}-dbg`, version, inputs.conan_repo, true);
+    await exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
+    await upload_pkg(name, version, inputs.conan_repo);
+    await upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
+    await upload_pkg(`${name}-dev`, version, inputs.conan_repo);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
