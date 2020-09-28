@@ -123,7 +123,7 @@ async function run(): Promise<void> {
       await upload_pkg(`${name}-dev`, version, inputs.conan_repo);
     }
     await upload_pkg(name, version, inputs.conan_repo, true);
-    await upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
+    await upload_pkg(`${name}-dbg`, version, inputs.conan_repo, true);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
