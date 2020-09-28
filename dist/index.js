@@ -5496,7 +5496,6 @@ function run() {
                     // Default profiles
                     let profiles = [
                         "Linux-x86_64",
-                        "Linux-x86_64-musl",
                         "Linux-armv8",
                     ];
                     if ("profiles" in conf.versions[version]) {
