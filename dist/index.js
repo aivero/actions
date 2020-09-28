@@ -218,10 +218,8 @@ function run() {
             // Conan Create and Upload
             yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
             yield exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
-            yield exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
             yield upload_pkg(name, version, inputs.conan_repo);
             yield upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
-            yield upload_pkg(`${name}-dev`, version, inputs.conan_repo);
         }
         catch (error) {
             core.debug(util_1.inspect(error));

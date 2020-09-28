@@ -112,10 +112,8 @@ async function run(): Promise<void> {
     // Conan Create and Upload
     await exec(`conan create -u ${inputs.path} ${name}/${version}@`);
     await exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
-    await exec(`conan create -u ${inputs.path} ${name}-dev/${version}@`);
     await upload_pkg(name, version, inputs.conan_repo);
     await upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
-    await upload_pkg(`${name}-dev`, version, inputs.conan_repo);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
