@@ -21,7 +21,18 @@ async function exec(
     throw new Error(`Invalid command: '${full_cmd}'`);
   }
   core.startGroup(`Running command: '${full_cmd}'`);
-  const child = await spawn(cmd, args, {});
+  const child = await spawn(
+    cmd,
+    args,
+  );
+
+  child.stderr.on("data", (data) => {
+    if (fail_on_error) {
+      core.error(data.toString("utf8"));
+    } else {
+      core.info(data.toString("utf8"));
+    }
+  });
 
   let res = "";
   for await (const chunk of child.stdout) {
@@ -32,13 +43,6 @@ async function exec(
   }
   core.endGroup();
 
-  for await (const chunk of child.stderr) {
-    if (fail_on_error) {
-      core.error(chunk.toString("utf8"));
-    } else {
-      core.info(chunk.toString("utf8"));
-    }
-  }
   const exitCode = await new Promise((resolve, reject) => {
     child.on("close", resolve);
   });

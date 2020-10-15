@@ -187,7 +187,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             throw new Error(`Invalid command: '${full_cmd}'`);
         }
         core.startGroup(`Running command: '${full_cmd}'`);
-        const child = yield child_process_1.spawn(cmd, args, {});
+        const child = yield child_process_1.spawn(cmd, args, { shell: true });
         let res = "";
         try {
             for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
