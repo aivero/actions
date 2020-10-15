@@ -179,7 +179,7 @@ function sleep(millis) {
     return new Promise((resolve) => setTimeout(resolve, millis));
 }
 function exec(full_cmd, fail_on_error = true, return_stdout = false) {
-    var e_1, _a, e_2, _b;
+    var e_1, _a;
     return __awaiter(this, void 0, void 0, function* () {
         let args = full_cmd.split(" ");
         let cmd = args.shift();
@@ -187,11 +187,19 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             throw new Error(`Invalid command: '${full_cmd}'`);
         }
         core.startGroup(`Running command: '${full_cmd}'`);
-        const child = yield child_process_1.spawn(cmd, args, { shell: true });
+        const child = yield child_process_1.spawn(cmd, args);
+        child.stderr.on("data", (data) => {
+            if (fail_on_error) {
+                core.error(data.toString("utf8"));
+            }
+            else {
+                core.info(data.toString("utf8"));
+            }
+        });
         let res = "";
         try {
-            for (var _c = __asyncValues(child.stdout), _d; _d = yield _c.next(), !_d.done;) {
-                const chunk = _d.value;
+            for (var _b = __asyncValues(child.stdout), _c; _c = yield _b.next(), !_c.done;) {
+                const chunk = _c.value;
                 core.info(chunk);
                 if (return_stdout) {
                     res += chunk;
@@ -201,29 +209,11 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
+                if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
             }
             finally { if (e_1) throw e_1.error; }
         }
         core.endGroup();
-        try {
-            for (var _e = __asyncValues(child.stderr), _f; _f = yield _e.next(), !_f.done;) {
-                const chunk = _f.value;
-                if (fail_on_error) {
-                    core.error(chunk.toString("utf8"));
-                }
-                else {
-                    core.info(chunk.toString("utf8"));
-                }
-            }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
-            }
-            finally { if (e_2) throw e_2.error; }
-        }
         const exitCode = yield new Promise((resolve, reject) => {
             child.on("close", resolve);
         });
