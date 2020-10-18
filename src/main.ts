@@ -5,7 +5,7 @@ import { inspect } from "util";
 import YAML from "yaml";
 import fs from "fs";
 import * as path from "path";
-import { profile } from "console";
+import hash from "object-hash";
 
 async function run(): Promise<void> {
   try {
@@ -54,25 +54,30 @@ async function run(): Promise<void> {
         const files_old = await git.raw(["ls-tree", "-r", "HEAD^"]);
         if (!files_old.includes(file)) {
           core.info(`Created: ${pkg}/config.yml`);
-          Object.keys(conf_new.versions).forEach((version) => {
-            core.info(`Build pkg/ver: ${pkg}/${version}`);
-            build_versions[pkg].add(version);
+          conf_new.forEach((build) => {
+            let pkg_hash = hash(build);
+            core.info(
+              `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+            );
+            build_versions[pkg].add(pkg_hash);
           });
           continue;
         }
         // Compare to old config.yml
         core.info(`Changed: ${pkg}/config.yml`);
         const conf_old = YAML.parse(await git.show(["HEAD^:" + file]));
-        Object.keys(conf_new.versions).forEach((version) => {
-          // Check if version existed in old commit or
-          // check if version data changed for version
-          if (
-            version in conf_old.versions === false ||
-            JSON.stringify(conf_new.versions[version]) !=
-              JSON.stringify(conf_old.versions[version])
-          ) {
-            core.info(`Build pkg/ver: ${pkg}/${version}`);
-            build_versions[pkg].add(version);
+        conf_new.forEach((build) => {
+          // Check if build existed in old commit or if build data changed
+          let pkg_hash = hash(build);
+          let old_pkg_hashs = new Set<string>();
+          conf_old.forEach((build) => {
+            old_pkg_hashs.add(hash(build));
+          });
+          if (!old_pkg_hashs.has(pkg_hash)) {
+            core.info(
+              `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+            );
+            build_versions[pkg].add(pkg_hash);
           }
         });
       } else {
@@ -80,10 +85,17 @@ async function run(): Promise<void> {
         const conf = YAML.parse(
           await git.show([`HEAD:recipes/${pkg}/config.yml`]),
         );
-        Object.keys(conf.versions).forEach((version) => {
-          if (conf.versions[version].folder == conf_or_ver) {
-            core.info(`Build pkg/ver: ${pkg}/${version}`);
-            build_versions[pkg].add(version);
+        conf.forEach((build) => {
+          let folder = "all";
+          if ("folder" in build) {
+            folder = build.folder;
+          }
+          if (folder == conf_or_ver) {
+            let pkg_hash = hash(build);
+            core.info(
+              `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+            );
+            build_versions[pkg].add(pkg_hash);
           }
         });
       }
@@ -91,21 +103,31 @@ async function run(): Promise<void> {
     core.endGroup();
 
     // Extract build settings (os, arch, profile)
-    for (const [pkg, versions] of Object.entries(build_versions)) {
-      for (const version of versions) {
-        // Extract settings from conanfile as yaml
-        const conf = YAML.parse(
-          await git.show([`HEAD:recipes/${pkg}/config.yml`]),
-        );
-        const folder: string = conf.versions[version].folder;
+    for (const [pkg, pkg_hashs] of Object.entries(build_versions)) {
+      // Extract settings from conanfile as yaml
+      const conf = YAML.parse(
+        await git.show([`HEAD:recipes/${pkg}/config.yml`]),
+      );
+
+      for (const pkg_hash of pkg_hashs) {
+        const index = conf.findIndex((build) => hash(build) == pkg_hash);
+
+        // Version
+        let version = conf[index];
+
+        // Default folder
+        let folder = "all";
+        if ("folder" in conf[index]) {
+          folder = conf[index].folder;
+        }
 
         // Default profiles
         let profiles = [
           "Linux-x86_64",
           "Linux-armv8",
         ];
-        if ("profiles" in conf.versions[version]) {
-          profiles = conf.versions[version].profiles;
+        if ("profiles" in conf[index]) {
+          profiles = conf[index].profiles;
         }
 
         // Get build combinations
