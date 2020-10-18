@@ -5503,7 +5503,7 @@ function run() {
                 for (const pkg_hash of pkg_hashs) {
                     const index = conf.findIndex((build) => object_hash_1.default(build) == pkg_hash);
                     // Version
-                    let version = conf[index];
+                    let version = conf[index].version;
                     // Default folder
                     let folder = "all";
                     if ("folder" in conf[index]) {

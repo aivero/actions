@@ -113,7 +113,7 @@ async function run(): Promise<void> {
         const index = conf.findIndex((build) => hash(build) == pkg_hash);
 
         // Version
-        let version = conf[index];
+        let version = conf[index].version;
 
         // Default folder
         let folder = "all";
