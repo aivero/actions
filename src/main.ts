@@ -24,6 +24,7 @@ async function exec(
   const child = await spawn(
     cmd,
     args,
+    { stdio: ["ignore", "pipe", "pipe"] },
   );
 
   child.stderr.on("data", (data) => {

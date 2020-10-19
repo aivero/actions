@@ -187,7 +187,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             throw new Error(`Invalid command: '${full_cmd}'`);
         }
         core.startGroup(`Running command: '${full_cmd}'`);
-        const child = yield child_process_1.spawn(cmd, args);
+        const child = yield child_process_1.spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
         child.stderr.on("data", (data) => {
             if (fail_on_error) {
                 core.error(data.toString("utf8"));
