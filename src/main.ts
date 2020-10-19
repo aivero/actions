@@ -184,7 +184,7 @@ async function run(): Promise<void> {
           await octokit.repos.createDispatchEvent({
             owner: owner,
             repo: repo,
-            event_type: comb.profile,
+            event_type: `${pkg}/${version}: ${comb.profile}`,
             client_payload: payload,
           });
         });
