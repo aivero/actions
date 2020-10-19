@@ -5570,7 +5570,7 @@ function run() {
                         yield octokit.repos.createDispatchEvent({
                             owner: owner,
                             repo: repo,
-                            event_type: "conan",
+                            event_type: comb.profile,
                             client_payload: payload,
                         });
                     }));
