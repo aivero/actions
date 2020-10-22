@@ -142,6 +142,31 @@ async function run(): Promise<void> {
           bootstrap = conf[index].image.bootstrap;
         }
 
+        // Settings
+        let settings = "";
+        if ("settings" in conf[index]) {
+          for (const [name, val] of Object.entries(conf[index].settings)) {
+            settings += `${name}=${val}:`;
+          }
+          // Remove last :
+          settings = settings.slice(0, -1);
+        }
+        // Options
+        let options = "";
+        if ("options" in conf[index]) {
+          for (let [name, val] of Object.entries(conf[index].options)) {
+            // Convert to Python bool
+            if (val == "true") {
+              val = "True";
+            }
+            if (val == "false") {
+              val = "False";
+            }
+            settings += `${name}=${val}:`;
+          }
+          // Remove last :
+          options = options.slice(0, -1);
+        }
         // Get build combinations
         const combinations: { tags; profile; image }[] = [];
         profiles.forEach((profile) => {
@@ -184,6 +209,8 @@ async function run(): Promise<void> {
         combinations.forEach(async (comb) => {
           const payload = {
             package: `${name}/${version}`,
+            settings: settings,
+            options: options,
             path: path.join("recipes", pkg, folder),
             tags: comb.tags,
             profile: comb.profile,

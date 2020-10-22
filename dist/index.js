@@ -5527,6 +5527,31 @@ function run() {
                     if ("image" in conf[index] && "bootstrap" in conf[index].image) {
                         bootstrap = conf[index].image.bootstrap;
                     }
+                    // Settings
+                    let settings = "";
+                    if ("settings" in conf[index]) {
+                        for (const [name, val] of Object.entries(conf[index].settings)) {
+                            settings += `${name}=${val}:`;
+                        }
+                        // Remove last :
+                        settings = settings.slice(0, -1);
+                    }
+                    // Options
+                    let options = "";
+                    if ("options" in conf[index]) {
+                        for (let [name, val] of Object.entries(conf[index].options)) {
+                            // Convert to Python bool
+                            if (val == "true") {
+                                val = "True";
+                            }
+                            if (val == "false") {
+                                val = "False";
+                            }
+                            settings += `${name}=${val}:`;
+                        }
+                        // Remove last :
+                        options = options.slice(0, -1);
+                    }
                     // Get build combinations
                     const combinations = [];
                     profiles.forEach((profile) => {
@@ -5568,6 +5593,8 @@ function run() {
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
                         const payload = {
                             package: `${name}/${version}`,
+                            settings: settings,
+                            options: options,
                             path: path.join("recipes", pkg, folder),
                             tags: comb.tags,
                             profile: comb.profile,
