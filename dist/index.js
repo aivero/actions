@@ -5522,10 +5522,10 @@ function run() {
                     if ("profiles" in conf[index]) {
                         profiles = conf[index].profiles;
                     }
-                    // Bootstrap image
+                    // Image config
                     let bootstrap = false;
-                    if ("bootstrap" in conf[index]) {
-                        bootstrap = conf[index].bootstrap;
+                    if ("image" in conf[index] && "bootstrap" in conf[index].image) {
+                        bootstrap = conf[index].image.bootstrap;
                     }
                     // Get build combinations
                     const combinations = [];
