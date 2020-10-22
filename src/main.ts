@@ -10,22 +10,22 @@ import hash from "object-hash";
 async function package_find_build_hashes(
   pkg: string,
 ): Promise<{ [pkg: string]: Set<string> }> {
-  const [name, version] = pkg.split("/");
+  const [pkg_name, pkg_version] = pkg.split("/");
   let build_hashes: { [pkg: string]: Set<string> } = {};
-  build_hashes[name] = new Set<string>();
+  build_hashes[pkg_name] = new Set<string>();
 
-  const conf_path = path.join("recipes", name, "config.yml");
+  const conf_path = path.join("recipes", pkg_name, "config.yml");
   const file = fs.readFileSync(conf_path, "utf8");
   const conf = YAML.parse(file);
   conf.forEach((build) => {
-    if (version != "*" && version != build.version) {
+    if (pkg_version != "*" && pkg_version != build.version) {
       return;
     }
     let pkg_hash = hash(build);
     core.info(
-      `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+      `Build pkg/ver (hash): ${pkg_name}/${build.version} (${pkg_hash})`,
     );
-    build_hashes[pkg].add(pkg_hash);
+    build_hashes[pkg_name].add(pkg_hash);
   });
 
   return build_hashes;
