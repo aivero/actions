@@ -4,6 +4,12 @@ inputs:
   package:
     description: 'Package name and version ({name}/{version})'
     default:
+  settings:
+    description: 'Conan settings'
+    default:
+  options:
+    description: 'Conan options'
+    default:
   path:
     description: 'Package recipe folder path'
     default: .
