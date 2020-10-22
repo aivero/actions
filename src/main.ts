@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import { inspect } from "util";
 import { spawn } from "child_process";
 import * as coreCommand from "@actions/core/lib/command";
-import { promisify } from "util";
+import YAML from "yaml";
 import path from "path";
 import fs from "fs";
 
@@ -85,7 +85,6 @@ async function run(): Promise<void> {
       package: core.getInput("package"),
       path: core.getInput("path"),
       profile: core.getInput("profile"),
-      conan_repo: core.getInput("conan_repo"),
     };
     core.info(`Inputs: ${inspect(inputs)}`);
 
@@ -107,18 +106,35 @@ async function run(): Promise<void> {
       `conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`,
     );
     await exec(
-      `conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${inputs.conan_repo}`,
+      `conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${process.env.CONAN_REPO_INTERNAL}`,
+    );
+    await exec(
+      `conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${process.env.CONAN_REPO_PUBLIC}`,
     );
     await exec(`conan config set general.default_profile=${inputs.profile}`);
 
     // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
-    // Conan Create and Upload
+    // Conan create
     await exec(`conan create -u ${inputs.path} ${name}/${version}@`);
     await exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
-    await upload_pkg(name, version, inputs.conan_repo);
-    await upload_pkg(`${name}-dbg`, version, inputs.conan_repo);
+
+    // Select internal or public Conan repository according to license
+    const recipe = YAML.parse(
+      await exec(`conan inspect ${name}/${version}@`, true, true),
+    );
+    let conan_repo = process.env.CONAN_REPO_PUBLIC;
+    if (recipe["license"].includes("Proprietary")) {
+      conan_repo = process.env.CONAN_REPO_INTERNAL;
+    }
+    if (!conan_repo) {
+      throw new Error(`No upload Conan repository set`);
+    }
+
+    // Conan upload
+    await upload_pkg(name, version, conan_repo);
+    await upload_pkg(`${name}-dbg`, version, conan_repo);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);

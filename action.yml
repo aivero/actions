@@ -10,8 +10,6 @@ inputs:
   profile:
     description: 'Conan profile'
     default: default
-  conan_repo:
-    description: 'Conan repo name'
 runs:
   using: 'node12'
   main: 'dist/index.js'
