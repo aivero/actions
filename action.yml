@@ -7,6 +7,9 @@ inputs:
   repository:
     description: 'The full name of the repository to send the dispatch.'
     default: ${{ github.repository }}
+  package:
+    description: 'Name/Version of package to dispatch.'
+    default:
 runs:
   using: 'node12'
   main: 'dist/index.js'

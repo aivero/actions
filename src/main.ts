@@ -7,107 +7,142 @@ import fs from "fs";
 import * as path from "path";
 import hash from "object-hash";
 
+async function package_find_build_hashes(
+  pkg: string,
+): Promise<{ [pkg: string]: Set<string> }> {
+  const [name, version] = pkg.split("/");
+  let build_hashes: { [pkg: string]: Set<string> } = {};
+  build_hashes[name] = new Set<string>();
+
+  const conf_path = path.join("recipes", name, "config.yml");
+  const file = fs.readFileSync(conf_path, "utf8");
+  const conf = YAML.parse(file);
+  conf.forEach((build) => {
+    if (version != "*" && version != build.version) {
+      return;
+    }
+    let pkg_hash = hash(build);
+    core.info(
+      `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+    );
+    build_hashes[pkg].add(pkg_hash);
+  });
+
+  return build_hashes;
+}
+async function git_find_build_hashes(
+  repo_path: string,
+): Promise<{ [pkg: string]: Set<string> }> {
+  // Compare to previous commit
+  const git = simpleGit();
+  const diff = await git.diffSummary(["HEAD", "HEAD^"]);
+
+  // Find package versions that needs to be build
+  const build_hashes: { [pkg: string]: Set<string> } = {};
+  for (const f of diff.files) {
+    let file = f.file;
+    // Handle file renaming
+    if (file.includes(" => ")) {
+      core.info(`Renamed: ${file}`);
+      file = file.replace(/{(.*) => .*}/, "$1");
+    }
+    const [root, pkg, conf_or_ver] = file.split("/");
+
+    // Only handle changed files in recipe folder and
+    // only handle files that exist in current commit
+    if (root != "recipes" || !fs.existsSync(path.join(repo_path, file))) {
+      continue;
+    }
+
+    // Create set with package versions to be build
+    if (!(pkg in build_hashes)) {
+      build_hashes[pkg] = new Set<string>();
+    }
+
+    // Handle config.yml changes
+    if (conf_or_ver == "config.yml") {
+      // New config.yml
+      const conf_new = YAML.parse(await git.show(["HEAD:" + file]));
+      const files_old = await git.raw(["ls-tree", "-r", "HEAD^"]);
+      if (!files_old.includes(file)) {
+        core.info(`Created: ${pkg}/config.yml`);
+        conf_new.forEach((build) => {
+          let pkg_hash = hash(build);
+          core.info(
+            `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+          );
+          build_hashes[pkg].add(pkg_hash);
+        });
+        continue;
+      }
+      // Compare to old config.yml
+      core.info(`Changed: ${pkg}/config.yml`);
+      const conf_old = YAML.parse(await git.show(["HEAD^:" + file]));
+      conf_new.forEach((build) => {
+        // Check if build existed in old commit or if build data changed
+        let pkg_hash = hash(build);
+        let old_pkg_hashs = new Set<string>();
+        conf_old.forEach((build) => {
+          old_pkg_hashs.add(hash(build));
+        });
+        if (!old_pkg_hashs.has(pkg_hash)) {
+          core.info(
+            `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+          );
+          build_hashes[pkg].add(pkg_hash);
+        }
+      });
+    } else {
+      // Handle {pkg-name}/{pkg-version}/* changes
+      const conf = YAML.parse(
+        await git.show([`HEAD:recipes/${pkg}/config.yml`]),
+      );
+      conf.forEach((build) => {
+        let folder = "all";
+        if ("folder" in build) {
+          folder = build.folder;
+        }
+        if (folder == conf_or_ver) {
+          let pkg_hash = hash(build);
+          core.info(
+            `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
+          );
+          build_hashes[pkg].add(pkg_hash);
+        }
+      });
+    }
+  }
+  return build_hashes;
+}
+
 async function run(): Promise<void> {
   try {
     // Handle inputs
     const inputs = {
       token: core.getInput("token"),
       repository: core.getInput("repository"),
-      repository_path: core.getInput("repository_path"),
+      repository_path: core.getInput("repository"),
+      package: core.getInput("package"),
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
     const [owner, repo] = inputs.repository.split("/");
     const octokit = github.getOctokit(inputs.token);
     const repo_path = inputs.repository_path || "";
 
-    // Compare to previous commit
-    const git = simpleGit(repo_path);
-    const diff = await git.diffSummary(["HEAD", "HEAD^"]);
-
-    // Find package versions that needs to be build
     core.startGroup("Find package versions that needs to be build");
-    const build_hashes: { [pkg: string]: Set<string> } = {};
-    for (const f of diff.files) {
-      let file = f.file;
-      // Handle file renaming
-      if (file.includes(" => ")) {
-        core.info(`Renamed: ${file}`);
-        file = file.replace(/{(.*) => .*}/, "$1");
-      }
-      const [root, pkg, conf_or_ver] = file.split("/");
-
-      // Only handle changed files in recipe folder and
-      // only handle files that exist in current commit
-      if (root != "recipes" || !fs.existsSync(path.join(repo_path, file))) {
-        continue;
-      }
-
-      // Create set with package versions to be build
-      if (!(pkg in build_hashes)) {
-        build_hashes[pkg] = new Set<string>();
-      }
-
-      // Handle config.yml changes
-      if (conf_or_ver == "config.yml") {
-        // New config.yml
-        const conf_new = YAML.parse(await git.show(["HEAD:" + file]));
-        const files_old = await git.raw(["ls-tree", "-r", "HEAD^"]);
-        if (!files_old.includes(file)) {
-          core.info(`Created: ${pkg}/config.yml`);
-          conf_new.forEach((build) => {
-            let pkg_hash = hash(build);
-            core.info(
-              `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
-            );
-            build_hashes[pkg].add(pkg_hash);
-          });
-          continue;
-        }
-        // Compare to old config.yml
-        core.info(`Changed: ${pkg}/config.yml`);
-        const conf_old = YAML.parse(await git.show(["HEAD^:" + file]));
-        conf_new.forEach((build) => {
-          // Check if build existed in old commit or if build data changed
-          let pkg_hash = hash(build);
-          let old_pkg_hashs = new Set<string>();
-          conf_old.forEach((build) => {
-            old_pkg_hashs.add(hash(build));
-          });
-          if (!old_pkg_hashs.has(pkg_hash)) {
-            core.info(
-              `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
-            );
-            build_hashes[pkg].add(pkg_hash);
-          }
-        });
-      } else {
-        // Handle {pkg-name}/{pkg-version}/* changes
-        const conf = YAML.parse(
-          await git.show([`HEAD:recipes/${pkg}/config.yml`]),
-        );
-        conf.forEach((build) => {
-          let folder = "all";
-          if ("folder" in build) {
-            folder = build.folder;
-          }
-          if (folder == conf_or_ver) {
-            let pkg_hash = hash(build);
-            core.info(
-              `Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`,
-            );
-            build_hashes[pkg].add(pkg_hash);
-          }
-        });
-      }
+    let build_hashes: { [pkg: string]: Set<string> };
+    if (inputs.package) {
+      build_hashes = await package_find_build_hashes(inputs.package);
+    } else {
+      build_hashes = await git_find_build_hashes(repo_path);
     }
     core.endGroup();
 
-    // Extract build settings (os, arch, profile)
+    // Dispatch build for each build hash
     for (const [pkg, pkg_hashes] of Object.entries(build_hashes)) {
-      // Extract settings from conanfile as yaml
-      const conf = YAML.parse(
-        await git.show([`HEAD:recipes/${pkg}/config.yml`]),
-      );
+      const conf_path = path.join("recipes", pkg, "config.yml");
+      const file = fs.readFileSync(conf_path, "utf8");
+      const conf = YAML.parse(file);
 
       for (const pkg_hash of pkg_hashes) {
         const index = conf.findIndex((build) => hash(build) == pkg_hash);
