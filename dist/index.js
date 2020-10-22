@@ -2769,6 +2769,8 @@ function run() {
         try {
             const inputs = {
                 package: core.getInput("package"),
+                settings: core.getInput("options"),
+                options: core.getInput("options"),
                 path: core.getInput("path"),
                 profile: core.getInput("profile"),
             };
@@ -2789,8 +2791,10 @@ function run() {
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
             // Conan create
-            yield exec(`conan create -u ${inputs.path} ${name}/${version}@`);
-            yield exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
+            const settings = "-s " + inputs.settings.split(":").join(" -s ");
+            const options = "-o " + inputs.options.split(":").join(" -o ");
+            yield exec(`conan create -u ${inputs.path} ${settings} ${options} ${name}/${version}@`);
+            yield exec(`conan create -u ${inputs.path} ${settings} ${options} ${name}-dbg/${version}@`);
             // Select internal or public Conan repository according to license
             const recipe = yaml_1.default.parse(yield exec(`conan inspect ${name}/${version}@`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;

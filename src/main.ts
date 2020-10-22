@@ -83,6 +83,8 @@ async function run(): Promise<void> {
   try {
     const inputs = {
       package: core.getInput("package"),
+      settings: core.getInput("options"),
+      options: core.getInput("options"),
       path: core.getInput("path"),
       profile: core.getInput("profile"),
     };
@@ -117,8 +119,14 @@ async function run(): Promise<void> {
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
     // Conan create
-    await exec(`conan create -u ${inputs.path} ${name}/${version}@`);
-    await exec(`conan create -u ${inputs.path} ${name}-dbg/${version}@`);
+    const settings = "-s " + inputs.settings.split(":").join(" -s ");
+    const options = "-o " + inputs.options.split(":").join(" -o ");
+    await exec(
+      `conan create -u ${inputs.path} ${settings} ${options} ${name}/${version}@`,
+    );
+    await exec(
+      `conan create -u ${inputs.path} ${settings} ${options} ${name}-dbg/${version}@`,
+    );
 
     // Select internal or public Conan repository according to license
     const recipe = YAML.parse(
