@@ -2791,8 +2791,14 @@ function run() {
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
             // Conan create
-            const settings = "-s " + inputs.settings.split(":").join(" -s ");
-            const options = "-o " + inputs.options.split(":").join(" -o ");
+            let settings = "";
+            if (inputs.settings) {
+                settings = "-s " + inputs.settings.split(":").join(" -s ");
+            }
+            let options = "";
+            if (inputs.options) {
+                options = "-o " + inputs.options.split(":").join(" -o ");
+            }
             yield exec(`conan create -u ${inputs.path} ${settings} ${options} ${name}/${version}@`);
             yield exec(`conan create -u ${inputs.path} ${settings} ${options} ${name}-dbg/${version}@`);
             // Select internal or public Conan repository according to license

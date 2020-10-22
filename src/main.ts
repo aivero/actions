@@ -119,8 +119,14 @@ async function run(): Promise<void> {
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
     // Conan create
-    const settings = "-s " + inputs.settings.split(":").join(" -s ");
-    const options = "-o " + inputs.options.split(":").join(" -o ");
+    let settings = "";
+    if (inputs.settings) {
+      settings = "-s " + inputs.settings.split(":").join(" -s ");
+    }
+    let options = "";
+    if (inputs.options) {
+      options = "-o " + inputs.options.split(":").join(" -o ");
+    }
     await exec(
       `conan create -u ${inputs.path} ${settings} ${options} ${name}/${version}@`,
     );
