@@ -5561,7 +5561,6 @@ function run() {
                             path: path.join("recipes", pkg, folder),
                             tags: comb.tags,
                             profile: comb.profile,
-                            conan_repo: "aivero-public",
                             docker_image: comb.image,
                             ref: process.env.GITHUB_REF,
                             sha: process.env.GITHUB_SHA,
