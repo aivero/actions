@@ -5431,7 +5431,7 @@ function run() {
             const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
             // Find package versions that needs to be build
             core.startGroup("Find package versions that needs to be build");
-            const build_versions = {};
+            const build_hashes = {};
             for (const f of diff.files) {
                 let file = f.file;
                 // Handle file renaming
@@ -5446,8 +5446,8 @@ function run() {
                     continue;
                 }
                 // Create set with package versions to be build
-                if (!(pkg in build_versions)) {
-                    build_versions[pkg] = new Set();
+                if (!(pkg in build_hashes)) {
+                    build_hashes[pkg] = new Set();
                 }
                 // Handle config.yml changes
                 if (conf_or_ver == "config.yml") {
@@ -5459,7 +5459,7 @@ function run() {
                         conf_new.forEach((build) => {
                             let pkg_hash = object_hash_1.default(build);
                             core.info(`Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`);
-                            build_versions[pkg].add(pkg_hash);
+                            build_hashes[pkg].add(pkg_hash);
                         });
                         continue;
                     }
@@ -5475,7 +5475,7 @@ function run() {
                         });
                         if (!old_pkg_hashs.has(pkg_hash)) {
                             core.info(`Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`);
-                            build_versions[pkg].add(pkg_hash);
+                            build_hashes[pkg].add(pkg_hash);
                         }
                     });
                 }
@@ -5490,18 +5490,23 @@ function run() {
                         if (folder == conf_or_ver) {
                             let pkg_hash = object_hash_1.default(build);
                             core.info(`Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`);
-                            build_versions[pkg].add(pkg_hash);
+                            build_hashes[pkg].add(pkg_hash);
                         }
                     });
                 }
             }
             core.endGroup();
             // Extract build settings (os, arch, profile)
-            for (const [pkg, pkg_hashs] of Object.entries(build_versions)) {
+            for (const [pkg, pkg_hashes] of Object.entries(build_hashes)) {
                 // Extract settings from conanfile as yaml
                 const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
-                for (const pkg_hash of pkg_hashs) {
+                for (const pkg_hash of pkg_hashes) {
                     const index = conf.findIndex((build) => object_hash_1.default(build) == pkg_hash);
+                    // Name
+                    let name = pkg;
+                    if ("name" in conf[index]) {
+                        name = conf[index].name;
+                    }
                     // Version
                     let version = conf[index].version;
                     // Default folder
@@ -5516,6 +5521,11 @@ function run() {
                     ];
                     if ("profiles" in conf[index]) {
                         profiles = conf[index].profiles;
+                    }
+                    // Bootstrap image
+                    let bootstrap = false;
+                    if ("bootstrap" in conf[index]) {
+                        bootstrap = conf[index].bootstrap;
                     }
                     // Get build combinations
                     const combinations = [];
@@ -5544,7 +5554,7 @@ function run() {
                             tags = ["ARM64"];
                         }
                         // Handle bootstrap packages
-                        if (pkg.startsWith("bootstrap-")) {
+                        if (bootstrap) {
                             image += "-bootstrap";
                         }
                         combinations.push({
@@ -5557,7 +5567,7 @@ function run() {
                     core.startGroup("Dispatch Conan Events");
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
                         const payload = {
-                            package: `${pkg}/${version}`,
+                            package: `${name}/${version}`,
                             path: path.join("recipes", pkg, folder),
                             tags: comb.tags,
                             profile: comb.profile,
@@ -5569,7 +5579,7 @@ function run() {
                         yield octokit.repos.createDispatchEvent({
                             owner: owner,
                             repo: repo,
-                            event_type: `${pkg}/${version}: ${comb.profile}`,
+                            event_type: `${name}/${version}: ${comb.profile}`,
                             client_payload: payload,
                         });
                     }));
