@@ -5581,7 +5581,7 @@ function run() {
                             if (val == "false") {
                                 val = "False";
                             }
-                            settings += `${name}=${val}:`;
+                            options += `${name}=${val}:`;
                         }
                         // Remove last :
                         options = options.slice(0, -1);
