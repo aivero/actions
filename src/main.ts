@@ -5,6 +5,7 @@ import * as coreCommand from "@actions/core/lib/command";
 import YAML from "yaml";
 import path from "path";
 import fs from "fs";
+import os from "os";
 
 function sleep(millis) {
   return new Promise((resolve) => setTimeout(resolve, millis));
@@ -14,6 +15,7 @@ async function exec(
   full_cmd: string,
   fail_on_error = true,
   return_stdout = false,
+  env = process.env,
 ) {
   let args = full_cmd.split(" ");
   let cmd = args.shift();
@@ -24,7 +26,7 @@ async function exec(
   const child = await spawn(
     cmd,
     args,
-    { stdio: ["ignore", "pipe", "pipe"] },
+    { stdio: ["ignore", "pipe", "pipe"], env: env },
   );
 
   child.stderr.on("data", (data) => {
@@ -44,12 +46,12 @@ async function exec(
   }
   core.endGroup();
 
-  const exitCode = await new Promise((resolve, reject) => {
+  const exit_code = await new Promise((resolve, reject) => {
     child.on("close", resolve);
   });
 
-  if (exitCode && fail_on_error) {
-    throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
+  if (exit_code && fail_on_error) {
+    throw new Error(`Command '${full_cmd}' failed with code: ${exit_code}`);
   }
   return res.trim();
 }
@@ -118,7 +120,7 @@ async function run(): Promise<void> {
     // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
-    // Conan create
+    // Setup options and settings arguments
     let settings = "";
     if (inputs.settings) {
       settings = " -s " + inputs.settings.split(";").join(" -s ");
@@ -127,11 +129,19 @@ async function run(): Promise<void> {
     if (inputs.options) {
       options = " -o " + inputs.options.split(";").join(" -o ");
     }
+
+    // Set number of cores (AWS prevents Conan from detecting number of cores)
+    let env = Object.create(process.env);
+    env.CONAN_CPU_COUNT = os.cpus().length;
+
+    // Conan create
     await exec(
       `conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`,
+      env = env,
     );
     await exec(
       `conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`,
+      env = env,
     );
 
     // Select internal or public Conan repository according to license

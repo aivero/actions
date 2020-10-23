@@ -2696,10 +2696,11 @@ const coreCommand = __importStar(__webpack_require__(431));
 const yaml_1 = __importDefault(__webpack_require__(521));
 const path_1 = __importDefault(__webpack_require__(622));
 const fs_1 = __importDefault(__webpack_require__(747));
+const os_1 = __importDefault(__webpack_require__(87));
 function sleep(millis) {
     return new Promise((resolve) => setTimeout(resolve, millis));
 }
-function exec(full_cmd, fail_on_error = true, return_stdout = false) {
+function exec(full_cmd, fail_on_error = true, return_stdout = false, env = process.env) {
     var e_1, _a;
     return __awaiter(this, void 0, void 0, function* () {
         let args = full_cmd.split(" ");
@@ -2708,7 +2709,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             throw new Error(`Invalid command: '${full_cmd}'`);
         }
         core.startGroup(`Running command: '${full_cmd}'`);
-        const child = yield child_process_1.spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+        const child = yield child_process_1.spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"], env: env });
         child.stderr.on("data", (data) => {
             if (fail_on_error) {
                 core.error(data.toString("utf8"));
@@ -2735,11 +2736,11 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false) {
             finally { if (e_1) throw e_1.error; }
         }
         core.endGroup();
-        const exitCode = yield new Promise((resolve, reject) => {
+        const exit_code = yield new Promise((resolve, reject) => {
             child.on("close", resolve);
         });
-        if (exitCode && fail_on_error) {
-            throw new Error(`Command '${full_cmd}' failed with code: ${exitCode}`);
+        if (exit_code && fail_on_error) {
+            throw new Error(`Command '${full_cmd}' failed with code: ${exit_code}`);
         }
         return res.trim();
     });
@@ -2790,7 +2791,7 @@ function run() {
             yield exec(`conan config set general.default_profile=${inputs.profile}`);
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
-            // Conan create
+            // Setup options and settings arguments
             let settings = "";
             if (inputs.settings) {
                 settings = " -s " + inputs.settings.split(";").join(" -s ");
@@ -2799,8 +2800,12 @@ function run() {
             if (inputs.options) {
                 options = " -o " + inputs.options.split(";").join(" -o ");
             }
-            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`);
-            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`);
+            // Set number of cores (AWS prevents Conan from detecting number of cores)
+            let env = Object.create(process.env);
+            env.CONAN_CPU_COUNT = os_1.default.cpus().length;
+            // Conan create
+            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`, env = env);
+            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`, env = env);
             // Select internal or public Conan repository according to license
             const recipe = yaml_1.default.parse(yield exec(`conan inspect ${name}/${version}@`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;
