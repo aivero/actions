@@ -5565,7 +5565,7 @@ function run() {
                     let settings = "";
                     if ("settings" in conf[index]) {
                         for (const [set, val] of Object.entries(conf[index].settings)) {
-                            settings += `${pkg_name}:${set}=${val}:`;
+                            settings += `${pkg_name}:${set}=${val};`;
                         }
                         // Remove last :
                         settings = settings.slice(0, -1);
@@ -5581,7 +5581,7 @@ function run() {
                             if (val == false) {
                                 val = "False";
                             }
-                            options += `${pkg_name}:${opt}=${val}:`;
+                            options += `${pkg_name}:${opt}=${val};`;
                         }
                         // Remove last :
                         options = options.slice(0, -1);
