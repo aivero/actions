@@ -137,11 +137,15 @@ async function run(): Promise<void> {
     // Conan create
     await exec(
       `conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`,
-      env = env,
+      true,
+      false,
+      env,
     );
     await exec(
       `conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`,
-      env = env,
+      true,
+      false,
+      env,
     );
 
     // Select internal or public Conan repository according to license

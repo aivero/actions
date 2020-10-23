@@ -2804,8 +2804,8 @@ function run() {
             let env = Object.create(process.env);
             env.CONAN_CPU_COUNT = os_1.default.cpus().length;
             // Conan create
-            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`, env = env);
-            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`, env = env);
+            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`, true, false, env);
+            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`, true, false, env);
             // Select internal or public Conan repository according to license
             const recipe = yaml_1.default.parse(yield exec(`conan inspect ${name}/${version}@`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;
