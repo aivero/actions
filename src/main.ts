@@ -121,11 +121,11 @@ async function run(): Promise<void> {
     // Conan create
     let settings = "";
     if (inputs.settings) {
-      settings = " -s " + inputs.settings.split(":").join(" -s ");
+      settings = " -s " + inputs.settings.split(";").join(" -s ");
     }
     let options = "";
     if (inputs.options) {
-      options = " -o " + inputs.options.split(":").join(" -o ");
+      options = " -o " + inputs.options.split(";").join(" -o ");
     }
     await exec(
       `conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`,
