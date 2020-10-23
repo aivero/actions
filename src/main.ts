@@ -192,10 +192,10 @@ async function run(): Promise<void> {
         if ("options" in conf[index]) {
           for (let [name, val] of Object.entries(conf[index].options)) {
             // Convert to Python bool
-            if (val == "true") {
+            if (val == true) {
               val = "True";
             }
-            if (val == "false") {
+            if (val == false) {
               val = "False";
             }
             options += `${name}=${val}:`;
