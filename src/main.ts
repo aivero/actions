@@ -128,10 +128,10 @@ async function run(): Promise<void> {
       options = " -o " + inputs.options.split(":").join(" -o ");
     }
     await exec(
-      `conan create -u ${settings}${options} ${inputs.path} ${name}/${version}@`,
+      `conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`,
     );
     await exec(
-      `conan create -u ${settings}${options} ${inputs.path} ${name}-dbg/${version}@`,
+      `conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`,
     );
 
     // Select internal or public Conan repository according to license
