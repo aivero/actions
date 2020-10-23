@@ -129,11 +129,12 @@ async function run(): Promise<void> {
     const octokit = github.getOctokit(inputs.token);
     const repo_path = inputs.repository_path || "";
 
-    core.startGroup("Find package versions that needs to be build");
     let build_hashes: { [pkg: string]: Set<string> };
     if (inputs.package) {
+      core.startGroup("Package Mode: Find build hashes that need to be build");
       build_hashes = await package_find_build_hashes(inputs.package);
     } else {
+      core.startGroup("Git Mode: Find build hashes that need to be build");
       build_hashes = await git_find_build_hashes(repo_path);
     }
     core.endGroup();

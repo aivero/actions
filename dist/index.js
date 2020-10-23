@@ -5519,12 +5519,13 @@ function run() {
             const [owner, repo] = inputs.repository.split("/");
             const octokit = github.getOctokit(inputs.token);
             const repo_path = inputs.repository_path || "";
-            core.startGroup("Find package versions that needs to be build");
             let build_hashes;
             if (inputs.package) {
+                core.startGroup("Package Mode: Find build hashes that need to be build");
                 build_hashes = yield package_find_build_hashes(inputs.package);
             }
             else {
+                core.startGroup("Git Mode: Find build hashes that need to be build");
                 build_hashes = yield git_find_build_hashes(repo_path);
             }
             core.endGroup();
