@@ -149,9 +149,9 @@ async function run(): Promise<void> {
         const index = conf.findIndex((build) => hash(build) == pkg_hash);
 
         // Name
-        let name = pkg;
+        let pkg_name = pkg;
         if ("name" in conf[index]) {
-          name = conf[index].name;
+          pkg_name = conf[index].name;
         }
 
         // Version
@@ -181,8 +181,8 @@ async function run(): Promise<void> {
         // Settings
         let settings = "";
         if ("settings" in conf[index]) {
-          for (const [name, val] of Object.entries(conf[index].settings)) {
-            settings += `${name}=${val}:`;
+          for (const [set, val] of Object.entries(conf[index].settings)) {
+            settings += `${pkg_name}:${set}=${val}:`;
           }
           // Remove last :
           settings = settings.slice(0, -1);
@@ -190,7 +190,7 @@ async function run(): Promise<void> {
         // Options
         let options = "";
         if ("options" in conf[index]) {
-          for (let [name, val] of Object.entries(conf[index].options)) {
+          for (let [opt, val] of Object.entries(conf[index].options)) {
             // Convert to Python bool
             if (val == true) {
               val = "True";
@@ -198,7 +198,7 @@ async function run(): Promise<void> {
             if (val == false) {
               val = "False";
             }
-            options += `${name}=${val}:`;
+            options += `${pkg_name}:${opt}=${val}:`;
           }
           // Remove last :
           options = options.slice(0, -1);
@@ -244,7 +244,7 @@ async function run(): Promise<void> {
         core.startGroup("Dispatch Conan Events");
         combinations.forEach(async (comb) => {
           const payload = {
-            package: `${name}/${version}`,
+            package: `${pkg_name}/${version}`,
             settings: settings,
             options: options,
             path: path.join("recipes", pkg, folder),
@@ -258,7 +258,7 @@ async function run(): Promise<void> {
           await octokit.repos.createDispatchEvent({
             owner: owner,
             repo: repo,
-            event_type: `${name}/${version}: ${comb.profile}`,
+            event_type: `${pkg_name}/${version}: ${comb.profile}`,
             client_payload: payload,
           });
         });

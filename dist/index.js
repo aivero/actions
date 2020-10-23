@@ -5537,9 +5537,9 @@ function run() {
                 for (const pkg_hash of pkg_hashes) {
                     const index = conf.findIndex((build) => object_hash_1.default(build) == pkg_hash);
                     // Name
-                    let name = pkg;
+                    let pkg_name = pkg;
                     if ("name" in conf[index]) {
-                        name = conf[index].name;
+                        pkg_name = conf[index].name;
                     }
                     // Version
                     let version = conf[index].version;
@@ -5564,8 +5564,8 @@ function run() {
                     // Settings
                     let settings = "";
                     if ("settings" in conf[index]) {
-                        for (const [name, val] of Object.entries(conf[index].settings)) {
-                            settings += `${name}=${val}:`;
+                        for (const [set, val] of Object.entries(conf[index].settings)) {
+                            settings += `${pkg_name}:${set}=${val}:`;
                         }
                         // Remove last :
                         settings = settings.slice(0, -1);
@@ -5573,7 +5573,7 @@ function run() {
                     // Options
                     let options = "";
                     if ("options" in conf[index]) {
-                        for (let [name, val] of Object.entries(conf[index].options)) {
+                        for (let [opt, val] of Object.entries(conf[index].options)) {
                             // Convert to Python bool
                             if (val == true) {
                                 val = "True";
@@ -5581,7 +5581,7 @@ function run() {
                             if (val == false) {
                                 val = "False";
                             }
-                            options += `${name}=${val}:`;
+                            options += `${pkg_name}:${opt}=${val}:`;
                         }
                         // Remove last :
                         options = options.slice(0, -1);
@@ -5626,7 +5626,7 @@ function run() {
                     core.startGroup("Dispatch Conan Events");
                     combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
                         const payload = {
-                            package: `${name}/${version}`,
+                            package: `${pkg_name}/${version}`,
                             settings: settings,
                             options: options,
                             path: path.join("recipes", pkg, folder),
@@ -5640,7 +5640,7 @@ function run() {
                         yield octokit.repos.createDispatchEvent({
                             owner: owner,
                             repo: repo,
-                            event_type: `${name}/${version}: ${comb.profile}`,
+                            event_type: `${pkg_name}/${version}: ${comb.profile}`,
                             client_payload: payload,
                         });
                     }));
