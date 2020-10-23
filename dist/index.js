@@ -2769,7 +2769,7 @@ function run() {
         try {
             const inputs = {
                 package: core.getInput("package"),
-                settings: core.getInput("options"),
+                settings: core.getInput("settings"),
                 options: core.getInput("options"),
                 path: core.getInput("path"),
                 profile: core.getInput("profile"),
