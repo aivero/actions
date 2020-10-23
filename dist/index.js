@@ -5512,7 +5512,7 @@ function run() {
             const inputs = {
                 token: core.getInput("token"),
                 repository: core.getInput("repository"),
-                repository_path: core.getInput("repository"),
+                repository_path: core.getInput("repository_path"),
                 package: core.getInput("package"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);

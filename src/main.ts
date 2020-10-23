@@ -121,7 +121,7 @@ async function run(): Promise<void> {
     const inputs = {
       token: core.getInput("token"),
       repository: core.getInput("repository"),
-      repository_path: core.getInput("repository"),
+      repository_path: core.getInput("repository_path"),
       package: core.getInput("package"),
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
