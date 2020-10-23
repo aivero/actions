@@ -2800,7 +2800,7 @@ function run() {
                 options = " -o " + inputs.options.split(":").join(" -o ");
             }
             yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`);
-            yield exec(`conan create -u${settings} ${inputs.path} ${name}-dbg/${version}@`);
+            yield exec(`conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`);
             // Select internal or public Conan repository according to license
             const recipe = yaml_1.default.parse(yield exec(`conan inspect ${name}/${version}@`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;
