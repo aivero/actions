@@ -4,6 +4,9 @@ inputs:
   package:
     description: 'Package name and version ({name}/{version})'
     default:
+  arguments:
+    description: 'Conan arguments'
+    default:
   settings:
     description: 'Conan settings'
     default:

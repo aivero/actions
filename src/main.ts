@@ -85,6 +85,7 @@ async function run(): Promise<void> {
   try {
     const inputs = {
       package: core.getInput("package"),
+      arguments: core.getInput("arguments"),
       settings: core.getInput("settings"),
       options: core.getInput("options"),
       path: core.getInput("path"),
@@ -136,13 +137,13 @@ async function run(): Promise<void> {
 
     // Conan create
     await exec(
-      `conan create -u${settings}${options} ${inputs.path} ${name}/${version}@`,
+      `conan create -u${settings}${options}${inputs.arguments} ${inputs.path} ${name}/${version}@`,
       true,
       false,
       env,
     );
     await exec(
-      `conan create -u${settings}${options} ${inputs.path} ${name}-dbg/${version}@`,
+      `conan create -u${settings}${options}${inputs.arguments} ${inputs.path} ${name}-dbg/${version}@`,
       true,
       false,
       env,
