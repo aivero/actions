@@ -10,6 +10,9 @@ inputs:
   package:
     description: 'Name/Version of package to dispatch.'
     default:
+  arguments:
+    description: 'Additional Conan arguments.'
+    default:
 runs:
   using: 'node12'
   main: 'dist/index.js'

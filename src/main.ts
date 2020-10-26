@@ -123,6 +123,7 @@ async function run(): Promise<void> {
       repository: core.getInput("repository"),
       repository_path: core.getInput("repository_path"),
       package: core.getInput("package"),
+      arguments: core.getInput("arguments"),
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
     const [owner, repo] = inputs.repository.split("/");
@@ -245,6 +246,7 @@ async function run(): Promise<void> {
         combinations.forEach(async (comb) => {
           const payload = {
             package: `${pkg_name}/${version}`,
+            args: inputs.arguments,
             settings: settings,
             options: options,
             path: path.join("recipes", pkg, folder),
