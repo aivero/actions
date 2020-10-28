@@ -151,7 +151,11 @@ async function run(): Promise<void> {
 
     // Select internal or public Conan repository according to license
     const recipe = YAML.parse(
-      await exec(`conan inspect ${name}/${version}@`, true, true),
+      await exec(
+        `conan inspect${settings}${options}${inputs.arguments} ${name}/${version}@`,
+        true,
+        true,
+      ),
     );
     let conan_repo = process.env.CONAN_REPO_PUBLIC;
     if (recipe["license"].includes("Proprietary")) {
