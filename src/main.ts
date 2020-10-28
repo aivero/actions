@@ -152,7 +152,7 @@ async function run(): Promise<void> {
     // Select internal or public Conan repository according to license
     const recipe = YAML.parse(
       await exec(
-        `conan inspect${settings}${options}${inputs.arguments} ${name}/${version}@`,
+        `conan inspect ${inputs.path}`,
         true,
         true,
       ),
