@@ -2745,17 +2745,17 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false, env = proce
         return res.trim();
     });
 }
-function get_pkg_info(name, version) {
+function get_pkg_info(name, version, args) {
     return __awaiter(this, void 0, void 0, function* () {
         const file = `/tmp/${name}.json`;
-        yield exec(`conan info ${name}/${version}@ --paths --json ${file}`);
+        yield exec(`conan info${args} ${name}/${version}@ --paths --json ${file}`);
         const pkg_info_json = fs_1.default.readFileSync(file, "utf8");
         return JSON.parse(pkg_info_json);
     });
 }
-function upload_pkg(name, version, repo, force_upload = true) {
+function upload_pkg(name, version, args, repo, force_upload = true) {
     return __awaiter(this, void 0, void 0, function* () {
-        const info = yield get_pkg_info(name, version);
+        const info = yield get_pkg_info(name, version, args);
         const pkg_path = info[0].package_folder;
         // Only upload if package is not empty (Empty packages contain 2 files: conaninfo.txt and conanmanifest.txt)
         if (force_upload || fs_1.default.readdirSync(pkg_path).length > 2) {
@@ -2805,8 +2805,9 @@ function run() {
             let env = Object.create(process.env);
             env.CONAN_CPU_COUNT = os_1.default.cpus().length;
             // Conan create
-            yield exec(`conan create -u${settings}${options}${inputs.arguments} ${inputs.path} ${name}/${version}@`, true, false, env);
-            yield exec(`conan create -u${settings}${options}${inputs.arguments} ${inputs.path} ${name}-dbg/${version}@`, true, false, env);
+            const args = `${settings}${options}${inputs.arguments}`;
+            yield exec(`conan create -u${args} ${inputs.path} ${name}/${version}@`, true, false, env);
+            yield exec(`conan create -u${args} ${inputs.path} ${name}-dbg/${version}@`, true, false, env);
             // Select internal or public Conan repository according to license
             const recipe = yaml_1.default.parse(yield exec(`conan inspect ${inputs.path}`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;
@@ -2817,8 +2818,8 @@ function run() {
                 throw new Error(`No upload Conan repository set`);
             }
             // Conan upload
-            yield upload_pkg(name, version, conan_repo);
-            yield upload_pkg(`${name}-dbg`, version, conan_repo);
+            yield upload_pkg(name, version, args, conan_repo);
+            yield upload_pkg(`${name}-dbg`, version, args, conan_repo);
         }
         catch (error) {
             core.debug(util_1.inspect(error));

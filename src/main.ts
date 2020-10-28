@@ -56,9 +56,9 @@ async function exec(
   return res.trim();
 }
 
-async function get_pkg_info(name: string, version: string) {
+async function get_pkg_info(name: string, version: string, args: string) {
   const file = `/tmp/${name}.json`;
-  await exec(`conan info ${name}/${version}@ --paths --json ${file}`);
+  await exec(`conan info${args} ${name}/${version}@ --paths --json ${file}`);
   const pkg_info_json = fs.readFileSync(file, "utf8");
   return JSON.parse(pkg_info_json);
 }
@@ -66,10 +66,11 @@ async function get_pkg_info(name: string, version: string) {
 async function upload_pkg(
   name: string,
   version: string,
+  args: string,
   repo: string,
   force_upload = true,
 ) {
-  const info = await get_pkg_info(name, version);
+  const info = await get_pkg_info(name, version, args);
   const pkg_path = info[0].package_folder;
   // Only upload if package is not empty (Empty packages contain 2 files: conaninfo.txt and conanmanifest.txt)
   if (force_upload || fs.readdirSync(pkg_path).length > 2) {
@@ -136,14 +137,15 @@ async function run(): Promise<void> {
     env.CONAN_CPU_COUNT = os.cpus().length;
 
     // Conan create
+    const args = `${settings}${options}${inputs.arguments}`;
     await exec(
-      `conan create -u${settings}${options}${inputs.arguments} ${inputs.path} ${name}/${version}@`,
+      `conan create -u${args} ${inputs.path} ${name}/${version}@`,
       true,
       false,
       env,
     );
     await exec(
-      `conan create -u${settings}${options}${inputs.arguments} ${inputs.path} ${name}-dbg/${version}@`,
+      `conan create -u${args} ${inputs.path} ${name}-dbg/${version}@`,
       true,
       false,
       env,
@@ -166,8 +168,8 @@ async function run(): Promise<void> {
     }
 
     // Conan upload
-    await upload_pkg(name, version, conan_repo);
-    await upload_pkg(`${name}-dbg`, version, conan_repo);
+    await upload_pkg(name, version, args, conan_repo);
+    await upload_pkg(`${name}-dbg`, version, args, conan_repo);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
