@@ -112,6 +112,9 @@ async function run(): Promise<void> {
       `conan config install ${process.env.CONAN_CONFIG_URL} -sf ${process.env.CONAN_CONFIG_DIR}`,
     );
     await exec(
+      `conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${process.env.CONAN_REPO_ALL}`,
+    );
+    await exec(
       `conan user ${process.env.CONAN_LOGIN_USERNAME} -p ${process.env.CONAN_LOGIN_PASSWORD} -r ${process.env.CONAN_REPO_INTERNAL}`,
     );
     await exec(
