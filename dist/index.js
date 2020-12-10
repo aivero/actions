@@ -5523,7 +5523,7 @@ class ConanMode {
                     }
                     else if (profile.includes("armv8")) {
                         image += "-armv8";
-                        tags = ["ARM6"];
+                        tags = ["ARM64"];
                     }
                     // Handle bootstrap packages
                     if (disp.image && disp.image.bootstrap) {

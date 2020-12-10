@@ -159,7 +159,7 @@ class ConanMode implements Mode {
           tags = ["X64"];
         } else if (profile.includes("armv8")) {
           image += "-armv8";
-          tags = ["ARM6"];
+          tags = ["ARM64"];
         }
 
         // Handle bootstrap packages
