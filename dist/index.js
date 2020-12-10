@@ -5413,97 +5413,263 @@ const yaml_1 = __importDefault(__webpack_require__(596));
 const fs_1 = __importDefault(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
 const object_hash_1 = __importDefault(__webpack_require__(418));
-function package_find_build_hashes(pkg) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const [pkg_name, pkg_version] = pkg.split("/");
-        let build_hashes = {};
-        build_hashes[pkg_name] = new Set();
-        const conf_path = path.join("recipes", pkg_name, "config.yml");
-        const file = fs_1.default.readFileSync(conf_path, "utf8");
-        const conf = yaml_1.default.parse(file);
-        conf.forEach((build) => {
-            if (pkg_version != "*" && pkg_version != build.version) {
-                return;
-            }
-            let pkg_hash = object_hash_1.default(build);
-            core.info(`Build pkg/ver (hash): ${pkg_name}/${build.version} (${pkg_hash})`);
-            build_hashes[pkg_name].add(pkg_hash);
-        });
-        return build_hashes;
-    });
+const CONFIG_NAME = "devops.yml";
+class DispatchConfig {
 }
-function git_find_build_hashes(repo_path) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Compare to previous commit
-        const git = simple_git_1.default();
-        const diff = yield git.diffSummary(["HEAD", "HEAD^"]);
-        // Find package versions that needs to be build
-        const build_hashes = {};
-        for (const f of diff.files) {
-            let file = f.file;
-            // Handle file renaming
-            if (file.includes(" => ")) {
-                core.info(`Renamed: ${file}`);
-                file = file.replace(/{(.*) => .*}/, "$1");
+class ConanDispatchConfig extends DispatchConfig {
+}
+class Payload {
+}
+class ConanPayload extends Payload {
+}
+class ConanMode {
+    constructor(inputs) {
+        this.subdir = inputs.subdir;
+        this.args = inputs.arguments;
+        this.repo = inputs.repository;
+    }
+    load_config_file(conf_path) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const name = path.basename(path.dirname(conf_path));
+            const conf_raw = fs_1.default.readFileSync(conf_path, "utf8");
+            return this.set_default_config_values(name, conf_raw);
+        });
+    }
+    set_default_config_values(name, conf_raw) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const conf = yaml_1.default.parse(conf_raw);
+            const disps = new Set();
+            conf.forEach((disp) => {
+                // Name
+                if (disp.name == undefined) {
+                    disp.name = name;
+                }
+                // Default folder
+                const folder = ".";
+                if (disp.folder == undefined) {
+                    disp.folder = folder;
+                }
+                // Default profiles
+                const profiles = [
+                    "Linux-x86_64",
+                    "Linux-armv8",
+                ];
+                if (disp.profiles == undefined) {
+                    disp.profiles = profiles;
+                }
+                if (disp.image == undefined) {
+                    disp.image = { boostrap: false };
+                }
+                disps.add(disp);
+            });
+            return disps;
+        });
+    }
+    find_dispatches() {
+        return __awaiter(this, void 0, void 0, function* () {
+            throw Error("Not implemented!");
+        });
+    }
+    get_events() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const events = new Set();
+            const disps = yield this.find_dispatches();
+            disps.forEach((disp) => {
+                // Arguments
+                let args = this.args;
+                if (disp.settings) {
+                    for (const [set, val] of Object.entries(disp.settings)) {
+                        args += ` ${disp.name}:${set}=${val}`;
+                    }
+                }
+                // Options
+                if (disp.options) {
+                    for (let [opt, val] of Object.entries(disp.options)) {
+                        // Convert to Python bool
+                        if (val == true) {
+                            val = "True";
+                        }
+                        if (val == false) {
+                            val = "False";
+                        }
+                        args += ` ${disp.name}:${opt}=${val}`;
+                    }
+                }
+                // Get build combinations
+                if (disp.profiles == undefined) {
+                    return;
+                }
+                disp.profiles.forEach((profile) => {
+                    let image = "aivero/conan:";
+                    let tags;
+                    // OS options
+                    if (profile.includes("musl")) {
+                        image += "alpine";
+                    }
+                    else if (profile.includes("Linux") || profile.includes("Wasi")) {
+                        image += "bionic";
+                    }
+                    else if (profile.includes("Windows")) {
+                        image += "windows";
+                    }
+                    else if (profile.includes("Macos")) {
+                        image += "macos";
+                    }
+                    // Arch options
+                    if (profile.includes("x86_64") || profile.includes("wasm")) {
+                        image += "-x86_64";
+                        tags = ["X64"];
+                    }
+                    else if (profile.includes("armv8")) {
+                        image += "-armv8";
+                        tags = ["ARM6"];
+                    }
+                    // Handle bootstrap packages
+                    if (disp.image && disp.image.bootstrap) {
+                        image += "-bootstrap";
+                    }
+                    // Create payload
+                    const payload = new ConanPayload();
+                    payload.package = `${disp.name}/${disp.version}`;
+                    payload.path = path.join(this.subdir, disp.name, disp.folder);
+                    payload.args = args;
+                    payload.image = image;
+                    payload.tags = tags;
+                    // Create event
+                    const [owner, repo] = this.repo.split("/");
+                    const event_type = `${disp.name}/${disp.version}: ${profile}`;
+                    const client_payload = payload;
+                    const event = {
+                        owner,
+                        repo,
+                        event_type,
+                        client_payload
+                    };
+                    events.add(event);
+                });
+            });
+            return events;
+        });
+    }
+}
+class ConanGitMode extends ConanMode {
+    constructor(inputs) {
+        super(inputs);
+        this.rev = "HEAD^";
+        this.repo_path = inputs.repo_path || "";
+        this.git = simple_git_1.default(inputs.repo_path);
+    }
+    find_config(dir) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dir_ori = dir;
+            while (dir != this.subdir) {
+                const conf_path = path.join(dir, CONFIG_NAME);
+                if (fs_1.default.existsSync(conf_path)) {
+                    return conf_path;
+                }
+                dir = path.dirname(dir);
             }
-            const [root, pkg, conf_or_ver] = file.split("/");
-            // Only handle changed files in recipe folder and
-            // only handle files that exist in current commit
-            if (root != "recipes" || !fs_1.default.existsSync(path.join(repo_path, file))) {
-                continue;
-            }
-            // Create set with package versions to be build
-            if (!(pkg in build_hashes)) {
-                build_hashes[pkg] = new Set();
-            }
-            // Handle config.yml changes
-            if (conf_or_ver == "config.yml") {
-                // New config.yml
-                const conf_new = yaml_1.default.parse(yield git.show(["HEAD:" + file]));
-                const files_old = yield git.raw(["ls-tree", "-r", "HEAD^"]);
-                if (!files_old.includes(file)) {
-                    core.info(`Created: ${pkg}/config.yml`);
-                    conf_new.forEach((build) => {
-                        let pkg_hash = object_hash_1.default(build);
-                        core.info(`Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`);
-                        build_hashes[pkg].add(pkg_hash);
-                    });
+            throw Error(`Couldn't find ${CONFIG_NAME} for file: ${dir_ori}`);
+        });
+    }
+    find_dispatches() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const disps = new Set();
+            // Compare to previous commit
+            const diff = yield this.git.diffSummary(["HEAD", "HEAD^"]);
+            for (const f of diff.files) {
+                let file_path = f.file;
+                // Handle file renaming
+                if (file_path.includes(" => ")) {
+                    core.info(`Renamed: ${file_path}`);
+                    file_path = file_path.replace(/{(.*) => .*}/, "$1");
+                }
+                // Only handle files that exist in current commit
+                if (!fs_1.default.existsSync(path.join(this.repo_path, file_path))) {
                     continue;
                 }
-                // Compare to old config.yml
-                core.info(`Changed: ${pkg}/config.yml`);
-                const conf_old = yaml_1.default.parse(yield git.show(["HEAD^:" + file]));
-                conf_new.forEach((build) => {
-                    // Check if build existed in old commit or if build data changed
-                    let pkg_hash = object_hash_1.default(build);
-                    let old_pkg_hashs = new Set();
-                    conf_old.forEach((build) => {
-                        old_pkg_hashs.add(object_hash_1.default(build));
-                    });
-                    if (!old_pkg_hashs.has(pkg_hash)) {
-                        core.info(`Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`);
-                        build_hashes[pkg].add(pkg_hash);
-                    }
-                });
+                const file = path.basename(file_path);
+                const file_dir = path.dirname(file_path);
+                const conf_path = yield this.find_config(file_dir);
+                const name = path.basename(path.dirname(conf_path));
+                let disps_new;
+                if (file == CONFIG_NAME) {
+                    disps_new = yield this.handle_config_change(name, file_path);
+                }
+                else {
+                    disps_new = yield this.handle_file_change(name, conf_path, file_path);
+                }
+                disps_new.forEach(disps.add, disps);
             }
-            else {
-                // Handle {pkg-name}/{pkg-version}/* changes
-                const conf = yaml_1.default.parse(yield git.show([`HEAD:recipes/${pkg}/config.yml`]));
-                conf.forEach((build) => {
-                    let folder = "all";
-                    if ("folder" in build) {
-                        folder = build.folder;
-                    }
-                    if (folder == conf_or_ver) {
-                        let pkg_hash = object_hash_1.default(build);
-                        core.info(`Build pkg/ver (hash): ${pkg}/${build.version} (${pkg_hash})`);
-                        build_hashes[pkg].add(pkg_hash);
-                    }
+            return disps;
+        });
+    }
+    handle_config_change(name, conf_path) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // New config.yml
+            const conf_new = yield this.set_default_config_values(name, yield this.git.show([`HEAD:${conf_path}`]));
+            const files_old = yield this.git.raw(["ls-tree", "-r", this.rev]);
+            if (!files_old.includes(conf_path)) {
+                core.info(`Created: ${conf_path}`);
+                conf_new.forEach((disp) => {
+                    const disp_hash = object_hash_1.default(disp);
+                    core.info(`Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`);
                 });
+                return conf_new;
             }
-        }
-        return build_hashes;
-    });
+            // Compare to old config.yml
+            core.info(`Changed: ${conf_path}`);
+            const disps = new Set();
+            const conf_old = yield this.set_default_config_values(name, yield this.git.show([`${this.rev}:${conf_path}`]));
+            conf_new.forEach((disp_new) => {
+                // Check if dispatch existed in old commit or if dispatch data changed
+                if (!conf_old.has(disp_new)) {
+                    const disp_hash = object_hash_1.default(disp_new);
+                    core.info(`Dispatch name/version (hash): ${disp_new.name}/${disp_new.version} (${disp_hash})`);
+                    disps.add(disp_new);
+                }
+            });
+            return disps;
+        });
+    }
+    handle_file_change(name, conf_path, file_path) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const disps = new Set();
+            const conf_raw = yield this.git.show([`HEAD:${conf_path}`]);
+            const conf = yield this.set_default_config_values(name, conf_raw);
+            conf.forEach((disp) => {
+                if (file_path.startsWith(path.join(this.subdir, name, disp.folder))) {
+                    const disp_hash = object_hash_1.default(disp);
+                    core.info(`Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`);
+                    disps.add(disp);
+                }
+            });
+            return disps;
+        });
+    }
+}
+class ConanManualMode extends ConanMode {
+    constructor(inputs) {
+        super(inputs);
+        this.pkg = inputs.package;
+    }
+    find_dispatches() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const disps = new Set();
+            const [name, version] = this.pkg.split("/");
+            const conf_path = path.join(this.subdir, name, CONFIG_NAME);
+            const conf = yield this.load_config_file(conf_path);
+            conf.forEach((disp) => {
+                if (version != "*" && version != disp.version) {
+                    return;
+                }
+                const pkg_hash = object_hash_1.default(disp);
+                core.info(`Build pkg/ver (hash): ${disp.name}/${disp.version} (${pkg_hash})`);
+                disps.add(disp);
+            });
+            return disps;
+        });
+    }
 }
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -5512,143 +5678,35 @@ function run() {
             const inputs = {
                 token: core.getInput("token"),
                 repository: core.getInput("repository"),
+                mode: core.getInput("mode"),
+                subdir: core.getInput("subdir"),
                 repository_path: core.getInput("repository_path"),
                 package: core.getInput("package"),
                 arguments: core.getInput("arguments"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
-            const [owner, repo] = inputs.repository.split("/");
-            const octokit = github.getOctokit(inputs.token);
-            const repo_path = inputs.repository_path || "";
-            let build_hashes;
-            if (inputs.package) {
-                core.startGroup("Package Mode: Find build hashes that need to be build");
-                build_hashes = yield package_find_build_hashes(inputs.package);
+            let mode;
+            if (inputs.mode == "conan_git") {
+                core.startGroup("Conan Git Mode: Create dispatches from changed files in git");
+                mode = new ConanGitMode(inputs);
+            }
+            else if (inputs.mode == "conan_manual") {
+                core.startGroup("Conan Manual Mode: Create dispatches from manual input");
+                mode = new ConanManualMode(inputs);
             }
             else {
-                core.startGroup("Git Mode: Find build hashes that need to be build");
-                build_hashes = yield git_find_build_hashes(repo_path);
+                throw new Error(`Mode not supported: ${inputs.mode}`);
             }
+            const events = yield mode.get_events();
             core.endGroup();
             // Dispatch build for each build hash
-            for (const [pkg, pkg_hashes] of Object.entries(build_hashes)) {
-                const conf_path = path.join("recipes", pkg, "config.yml");
-                const file = fs_1.default.readFileSync(conf_path, "utf8");
-                const conf = yaml_1.default.parse(file);
-                for (const pkg_hash of pkg_hashes) {
-                    const index = conf.findIndex((build) => object_hash_1.default(build) == pkg_hash);
-                    // Name
-                    let pkg_name = pkg;
-                    if ("name" in conf[index]) {
-                        pkg_name = conf[index].name;
-                    }
-                    // Version
-                    let version = conf[index].version;
-                    // Default folder
-                    let folder = "all";
-                    if ("folder" in conf[index]) {
-                        folder = conf[index].folder;
-                    }
-                    // Default profiles
-                    let profiles = [
-                        "Linux-x86_64",
-                        "Linux-armv8",
-                    ];
-                    if ("profiles" in conf[index]) {
-                        profiles = conf[index].profiles;
-                    }
-                    // Image config
-                    let bootstrap = false;
-                    if ("image" in conf[index] && "bootstrap" in conf[index].image) {
-                        bootstrap = conf[index].image.bootstrap;
-                    }
-                    // Settings
-                    let settings = "";
-                    if ("settings" in conf[index]) {
-                        for (const [set, val] of Object.entries(conf[index].settings)) {
-                            settings += `${pkg_name}:${set}=${val};`;
-                        }
-                        // Remove last :
-                        settings = settings.slice(0, -1);
-                    }
-                    // Options
-                    let options = "";
-                    if ("options" in conf[index]) {
-                        for (let [opt, val] of Object.entries(conf[index].options)) {
-                            // Convert to Python bool
-                            if (val == true) {
-                                val = "True";
-                            }
-                            if (val == false) {
-                                val = "False";
-                            }
-                            options += `${pkg_name}:${opt}=${val};`;
-                        }
-                        // Remove last :
-                        options = options.slice(0, -1);
-                    }
-                    // Get build combinations
-                    const combinations = [];
-                    profiles.forEach((profile) => {
-                        let image = "aivero/conan:";
-                        let tags = ["x64"];
-                        // OS options
-                        if (profile.includes("musl")) {
-                            image += "alpine";
-                        }
-                        else if (profile.includes("Linux") || profile.includes("Wasi")) {
-                            image += "bionic";
-                        }
-                        else if (profile.includes("Windows")) {
-                            image += "windows";
-                        }
-                        else if (profile.includes("Macos")) {
-                            image += "macos";
-                        }
-                        // Arch options
-                        if (profile.includes("x86_64") || profile.includes("wasm")) {
-                            image += "-x86_64";
-                        }
-                        else if (profile.includes("armv8")) {
-                            image += "-armv8";
-                            tags = ["ARM64"];
-                        }
-                        // Handle bootstrap packages
-                        if (bootstrap) {
-                            image += "-bootstrap";
-                        }
-                        combinations.push({
-                            tags: tags,
-                            profile: profile,
-                            image: image,
-                        });
-                    });
-                    // Dispatch Conan events
-                    core.startGroup("Dispatch Conan Events");
-                    combinations.forEach((comb) => __awaiter(this, void 0, void 0, function* () {
-                        const payload = {
-                            package: `${pkg_name}/${version}`,
-                            args: inputs.arguments,
-                            settings: settings,
-                            options: options,
-                            path: path.join("recipes", pkg, folder),
-                            tags: comb.tags,
-                            profile: comb.profile,
-                            docker_image: comb.image,
-                            ref: process.env.GITHUB_REF,
-                            sha: process.env.GITHUB_SHA,
-                        };
-                        core.info(`${util_1.inspect(payload)}`);
-                        yield octokit.repos.createDispatchEvent({
-                            owner: owner,
-                            repo: repo,
-                            event_type: `${pkg_name}/${version}: ${comb.profile}`,
-                            client_payload: payload,
-                        });
-                    }));
-                    core.endGroup();
-                }
-            }
+            core.startGroup("Dispatch Events");
+            const octokit = github.getOctokit(inputs.token);
+            events.forEach((event) => __awaiter(this, void 0, void 0, function* () {
+                core.info(`${util_1.inspect(event.client_payload)}`);
+                yield octokit.repos.createDispatchEvent(event);
+            }));
+            core.endGroup();
         }
         catch (error) {
             core.debug(util_1.inspect(error));
