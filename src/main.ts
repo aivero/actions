@@ -34,6 +34,7 @@ class Payload {
 
 class ConanPayload extends Payload {
     package?: string;
+    profile?: string;
     args?: string;
     path?: string;
 }
@@ -167,6 +168,7 @@ class ConanMode implements Mode {
         // Create payload
         const payload = new ConanPayload();
         payload.package = `${disp.name}/${disp.version}`;
+        payload.profile = profile;
         payload.path = path.join(this.subdir, disp.name as string, disp.folder as string);
         payload.args = args;
         payload.image = image;

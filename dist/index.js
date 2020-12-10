@@ -5531,6 +5531,7 @@ class ConanMode {
                     // Create payload
                     const payload = new ConanPayload();
                     payload.package = `${disp.name}/${disp.version}`;
+                    payload.profile = profile;
                     payload.path = path.join(this.subdir, disp.name, disp.folder);
                     payload.args = args;
                     payload.image = image;
