@@ -5495,6 +5495,7 @@ class ConanMode {
                         args += ` ${disp.name}:${opt}=${val}`;
                     }
                 }
+                args.trim();
                 // Get build combinations
                 if (disp.profiles == undefined) {
                     return;
