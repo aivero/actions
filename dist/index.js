@@ -5537,6 +5537,8 @@ class ConanMode {
                     payload.args = args;
                     payload.image = image;
                     payload.tags = tags;
+                    payload.ref = process.env.GITHUB_REF;
+                    payload.sha = process.env.GITHUB_SHA;
                     // Create event
                     const [owner, repo] = this.repo.split("/");
                     const event_type = `${disp.name}/${disp.version}: ${profile}`;

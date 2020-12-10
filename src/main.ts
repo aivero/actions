@@ -29,8 +29,9 @@ interface ImageConfig {
 class Payload {
     tags?: [string];
     image?: string;
+    ref?: string;
+    sha?: string;
 }
-
 
 class ConanPayload extends Payload {
     package?: string;
@@ -174,6 +175,8 @@ class ConanMode implements Mode {
         payload.args = args;
         payload.image = image;
         payload.tags = tags;
+        payload.ref = process.env.GITHUB_REF;
+        payload.sha = process.env.GITHUB_SHA;
 
         // Create event
         const [owner, repo] = this.repo.split("/");
