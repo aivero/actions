@@ -2771,8 +2771,6 @@ function run() {
             const inputs = {
                 package: core.getInput("package"),
                 arguments: core.getInput("arguments"),
-                settings: core.getInput("settings"),
-                options: core.getInput("options"),
                 path: core.getInput("path"),
                 profile: core.getInput("profile"),
             };
@@ -2793,22 +2791,17 @@ function run() {
             yield exec(`conan config set general.default_profile=${inputs.profile}`);
             // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
             yield exec(`rm -rf ${path_1.default.join(conan_pkg_path, "source")}`);
-            // Setup options and settings arguments
-            let settings = "";
-            if (inputs.settings) {
-                settings = " -s " + inputs.settings.split(";").join(" -s ");
-            }
-            let options = "";
-            if (inputs.options) {
-                options = " -o " + inputs.options.split(";").join(" -o ");
-            }
             // Set number of cores (AWS prevents Conan from detecting number of cores)
             let env = Object.create(process.env);
             env.CONAN_CPU_COUNT = os_1.default.cpus().length;
             // Conan create
-            const args = `${settings}${options}${inputs.arguments}`;
-            yield exec(`conan create -u${args} ${inputs.path} ${name}/${version}@`, true, false, env);
-            yield exec(`conan create -u${args} ${inputs.path} ${name}-dbg/${version}@`, true, false, env);
+            let args = inputs.arguments;
+            if (inputs.arguments) {
+                args = `${inputs.arguments.trim()} `;
+            }
+            ;
+            yield exec(`conan create -u ${args}${inputs.path} ${name}/${version}@`, true, false, env);
+            yield exec(`conan create -u ${args}${inputs.path} ${name}-dbg/${version}@`, true, false, env);
             // Select internal or public Conan repository according to license
             const recipe = yaml_1.default.parse(yield exec(`conan inspect ${inputs.path}`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;

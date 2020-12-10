@@ -87,8 +87,6 @@ async function run(): Promise<void> {
     const inputs = {
       package: core.getInput("package"),
       arguments: core.getInput("arguments"),
-      settings: core.getInput("settings"),
-      options: core.getInput("options"),
       path: core.getInput("path"),
       profile: core.getInput("profile"),
     };
@@ -125,30 +123,23 @@ async function run(): Promise<void> {
     // Workaround to force fetch source until fixed upstream in Conan: https://github.com/conan-io/conan/issues/3084
     await exec(`rm -rf ${path.join(conan_pkg_path, "source")}`);
 
-    // Setup options and settings arguments
-    let settings = "";
-    if (inputs.settings) {
-      settings = " -s " + inputs.settings.split(";").join(" -s ");
-    }
-    let options = "";
-    if (inputs.options) {
-      options = " -o " + inputs.options.split(";").join(" -o ");
-    }
-
     // Set number of cores (AWS prevents Conan from detecting number of cores)
     let env = Object.create(process.env);
     env.CONAN_CPU_COUNT = os.cpus().length;
 
     // Conan create
-    const args = `${settings}${options}${inputs.arguments}`;
+    let args = inputs.arguments;
+    if (inputs.arguments) {
+        args = `${inputs.arguments.trim()} `;
+    };
     await exec(
-      `conan create -u${args} ${inputs.path} ${name}/${version}@`,
+      `conan create -u ${args}${inputs.path} ${name}/${version}@`,
       true,
       false,
       env,
     );
     await exec(
-      `conan create -u${args} ${inputs.path} ${name}-dbg/${version}@`,
+      `conan create -u ${args}${inputs.path} ${name}-dbg/${version}@`,
       true,
       false,
       env,

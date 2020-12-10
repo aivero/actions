@@ -7,12 +7,6 @@ inputs:
   arguments:
     description: 'Conan arguments'
     default:
-  settings:
-    description: 'Conan settings'
-    default:
-  options:
-    description: 'Conan options'
-    default:
   path:
     description: 'Package recipe folder path'
     default: .
