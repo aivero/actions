@@ -17,6 +17,9 @@ inputs:
   arguments:
     description: 'Additional Conan arguments.'
     default:
+  subdir:
+    description: 'Subdirectory with recipe directories'
+    default: recipes
 runs:
   using: 'node12'
   main: 'dist/index.js'
