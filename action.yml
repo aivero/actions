@@ -1,6 +1,10 @@
 name: 'Conan Dispatch'
 description: 'Create a conan dispatch event'
 inputs:
+  mode:
+    description: 'Dispatch mode'
+    default: conan_git
+    required: true
   token:
     description: 'A repo scoped GitHub Personal Access Token'
     required: true
