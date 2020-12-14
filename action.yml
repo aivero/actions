@@ -1,25 +1,21 @@
 name: 'Conan Dispatch'
 description: 'Create a conan dispatch event'
 inputs:
-  mode:
-    description: 'Dispatch mode'
-    default: conan_git
-    required: true
   token:
     description: 'A repo scoped GitHub Personal Access Token'
     required: true
   repository:
     description: 'The full name of the repository to send the dispatch.'
     default: ${{ github.repository }}
+  root:
+    description: 'Absolut or relative path to directory with packages'
+    default: recipes
   package:
     description: 'Name/Version of package to dispatch.'
     default:
   arguments:
     description: 'Additional Conan arguments.'
     default:
-  subdir:
-    description: 'Subdirectory with recipe directories'
-    default: recipes
 runs:
   using: 'node12'
   main: 'dist/index.js'
