@@ -5414,28 +5414,25 @@ const fs_1 = __importDefault(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
 const object_hash_1 = __importDefault(__webpack_require__(418));
 const CONFIG_NAME = "devops.yml";
-class DispatchConfig {
-}
-class ConanDispatchConfig extends DispatchConfig {
-}
-class Payload {
-}
-class ConanPayload extends Payload {
-}
-class ConanMode {
+var DispatchMode;
+(function (DispatchMode) {
+    DispatchMode["Conan"] = "Conan";
+    DispatchMode["Cargo"] = "Cargo";
+})(DispatchMode || (DispatchMode = {}));
+class Mode {
     constructor(inputs) {
-        this.subdir = inputs.subdir;
         this.args = inputs.arguments;
         this.repo = inputs.repository;
+        this.root = inputs.root;
     }
     load_config_file(conf_path) {
         return __awaiter(this, void 0, void 0, function* () {
             const name = path.basename(path.dirname(conf_path));
             const conf_raw = fs_1.default.readFileSync(conf_path, "utf8");
-            return this.set_default_config_values(name, conf_raw);
+            return this.load_config(name, conf_raw);
         });
     }
-    set_default_config_values(name, conf_raw) {
+    load_config(name, conf_raw) {
         return __awaiter(this, void 0, void 0, function* () {
             const conf = yaml_1.default.parse(conf_raw);
             const disps = new Set();
@@ -5474,7 +5471,7 @@ class ConanMode {
         return __awaiter(this, void 0, void 0, function* () {
             const events = new Set();
             const disps = yield this.find_dispatches();
-            disps.forEach((disp) => {
+            disps.forEach((disp) => __awaiter(this, void 0, void 0, function* () {
                 // Arguments
                 let args = this.args;
                 if (disp.settings) {
@@ -5484,15 +5481,12 @@ class ConanMode {
                 }
                 // Options
                 if (disp.options) {
-                    for (let [opt, val] of Object.entries(disp.options)) {
+                    for (const [opt, val] of Object.entries(disp.options)) {
                         // Convert to Python bool
-                        if (val == true) {
-                            val = "True";
-                        }
-                        if (val == false) {
-                            val = "False";
-                        }
-                        args += ` ${disp.name}:${opt}=${val}`;
+                        const res = val == true ? "True"
+                            : val == false ? "False"
+                                : val;
+                        args += ` ${disp.name}:${opt}=${res}`;
                     }
                 }
                 args.trim();
@@ -5500,7 +5494,7 @@ class ConanMode {
                 if (disp.profiles == undefined) {
                     return;
                 }
-                disp.profiles.forEach((profile) => {
+                disp.profiles.forEach((profile) => __awaiter(this, void 0, void 0, function* () {
                     let image = "aivero/conan:";
                     let tags;
                     // OS options
@@ -5529,16 +5523,24 @@ class ConanMode {
                     if (disp.image && disp.image.bootstrap) {
                         image += "-bootstrap";
                     }
+                    // Find branch and commit
+                    const branch = process.env.GITHUB_REF;
+                    const version = branch == "master" ? disp.version
+                        : `${disp.version}-${branch}`;
+                    const commit = disp.commit ? disp.commit
+                        : process.env.GITHUB_SHA;
                     // Create payload
-                    const payload = new ConanPayload();
-                    payload.package = `${disp.name}/${disp.version}`;
-                    payload.profile = profile;
-                    payload.path = path.join(this.subdir, disp.name, disp.folder);
-                    payload.args = args;
-                    payload.image = image;
-                    payload.tags = tags;
-                    payload.ref = process.env.GITHUB_REF;
-                    payload.sha = process.env.GITHUB_SHA;
+                    const payload = {
+                        tags,
+                        image,
+                        branch,
+                        commit,
+                        mode: yield this.get_mode(disp),
+                        package: `${disp.name}/${version}`,
+                        profile,
+                        args,
+                        path: path.join(this.root, disp.name, disp.folder),
+                    };
                     // Create event
                     const [owner, repo] = this.repo.split("/");
                     const event_type = `${disp.name}/${disp.version}: ${profile}`;
@@ -5550,23 +5552,33 @@ class ConanMode {
                         client_payload
                     };
                     events.add(event);
-                });
-            });
+                }));
+            }));
             return events;
         });
     }
+    get_mode(disp) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (fs_1.default.existsSync(path.join(this.root, disp.name, disp.folder, "conanfile.py"))) {
+                return DispatchMode.Conan;
+            }
+            else if (fs_1.default.existsSync(path.join(this.root, disp.name, disp.folder, "Cargo.toml"))) {
+                return DispatchMode.Cargo;
+            }
+            throw Error(`Could not detect mode for folder: ${disp.folder}`);
+        });
+    }
 }
-class ConanGitMode extends ConanMode {
+class GitMode extends Mode {
     constructor(inputs) {
         super(inputs);
-        this.rev = "HEAD^";
-        this.repo_path = inputs.repo_path || "";
-        this.git = simple_git_1.default(inputs.repo_path);
+        this.last_rev = process.env.GITHUB_LAST_REV || "HEAD^";
+        this.git = simple_git_1.default();
     }
     find_config(dir) {
         return __awaiter(this, void 0, void 0, function* () {
             const dir_ori = dir;
-            while (dir != this.subdir) {
+            while (dir != this.root) {
                 const conf_path = path.join(dir, CONFIG_NAME);
                 if (fs_1.default.existsSync(conf_path)) {
                     return conf_path;
@@ -5580,7 +5592,7 @@ class ConanGitMode extends ConanMode {
         return __awaiter(this, void 0, void 0, function* () {
             const disps = new Set();
             // Compare to previous commit
-            const diff = yield this.git.diffSummary(["HEAD", "HEAD^"]);
+            const diff = yield this.git.diffSummary(["HEAD", this.last_rev]);
             for (const f of diff.files) {
                 let file_path = f.file;
                 // Handle file renaming
@@ -5589,7 +5601,7 @@ class ConanGitMode extends ConanMode {
                     file_path = file_path.replace(/{(.*) => .*}/, "$1");
                 }
                 // Only handle files that exist in current commit
-                if (!fs_1.default.existsSync(path.join(this.repo_path, file_path))) {
+                if (!fs_1.default.existsSync(file_path)) {
                     continue;
                 }
                 const file = path.basename(file_path);
@@ -5611,8 +5623,8 @@ class ConanGitMode extends ConanMode {
     handle_config_change(name, conf_path) {
         return __awaiter(this, void 0, void 0, function* () {
             // New config.yml
-            const conf_new = yield this.set_default_config_values(name, yield this.git.show([`HEAD:${conf_path}`]));
-            const files_old = yield this.git.raw(["ls-tree", "-r", this.rev]);
+            const conf_new = yield this.load_config(name, yield this.git.show([`HEAD:${conf_path}`]));
+            const files_old = yield this.git.raw(["ls-tree", "-r", this.last_rev]);
             if (!files_old.includes(conf_path)) {
                 core.info(`Created: ${conf_path}`);
                 conf_new.forEach((disp) => {
@@ -5624,10 +5636,11 @@ class ConanGitMode extends ConanMode {
             // Compare to old config.yml
             core.info(`Changed: ${conf_path}`);
             const disps = new Set();
-            const conf_old = yield this.set_default_config_values(name, yield this.git.show([`${this.rev}:${conf_path}`]));
+            const conf_old = yield this.load_config(name, yield this.git.show([`${this.last_rev}:${conf_path}`]));
+            const hashs_old = [...conf_old].map(disp => object_hash_1.default(disp));
             conf_new.forEach((disp_new) => {
                 // Check if dispatch existed in old commit or if dispatch data changed
-                if (!conf_old.has(disp_new)) {
+                if (!hashs_old.includes(object_hash_1.default(disp_new))) {
                     const disp_hash = object_hash_1.default(disp_new);
                     core.info(`Dispatch name/version (hash): ${disp_new.name}/${disp_new.version} (${disp_hash})`);
                     disps.add(disp_new);
@@ -5639,10 +5652,9 @@ class ConanGitMode extends ConanMode {
     handle_file_change(name, conf_path, file_path) {
         return __awaiter(this, void 0, void 0, function* () {
             const disps = new Set();
-            const conf_raw = yield this.git.show([`HEAD:${conf_path}`]);
-            const conf = yield this.set_default_config_values(name, conf_raw);
+            const conf = yield this.load_config_file(conf_path);
             conf.forEach((disp) => {
-                if (file_path.startsWith(path.join(this.subdir, name, disp.folder))) {
+                if (file_path.startsWith(path.join(this.root, name, disp.folder))) {
                     const disp_hash = object_hash_1.default(disp);
                     core.info(`Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`);
                     disps.add(disp);
@@ -5652,7 +5664,7 @@ class ConanGitMode extends ConanMode {
         });
     }
 }
-class ConanManualMode extends ConanMode {
+class ManualMode extends Mode {
     constructor(inputs) {
         super(inputs);
         this.pkg = inputs.package;
@@ -5661,7 +5673,7 @@ class ConanManualMode extends ConanMode {
         return __awaiter(this, void 0, void 0, function* () {
             const disps = new Set();
             const [name, version] = this.pkg.split("/");
-            const conf_path = path.join(this.subdir, name, CONFIG_NAME);
+            const conf_path = path.join(this.root, name, CONFIG_NAME);
             const conf = yield this.load_config_file(conf_path);
             conf.forEach((disp) => {
                 if (version != "*" && version != disp.version) {
@@ -5682,24 +5694,19 @@ function run() {
             const inputs = {
                 token: core.getInput("token"),
                 repository: core.getInput("repository"),
-                mode: core.getInput("mode"),
-                subdir: core.getInput("subdir"),
-                repository_path: core.getInput("repository_path"),
+                root: core.getInput("root"),
                 package: core.getInput("package"),
                 arguments: core.getInput("arguments"),
             };
             core.debug(`Inputs: ${util_1.inspect(inputs)}`);
             let mode;
-            if (inputs.mode == "conan_git") {
-                core.startGroup("Conan Git Mode: Create dispatches from changed files in git");
-                mode = new ConanGitMode(inputs);
-            }
-            else if (inputs.mode == "conan_manual") {
-                core.startGroup("Conan Manual Mode: Create dispatches from manual input");
-                mode = new ConanManualMode(inputs);
+            if (inputs.package) {
+                core.startGroup("Manual Mode: Create dispatches from manual input");
+                mode = new ManualMode(inputs);
             }
             else {
-                throw new Error(`Mode not supported: ${inputs.mode}`);
+                core.startGroup("Git Mode: Create dispatches from changed files in git");
+                mode = new GitMode(inputs);
             }
             const events = yield mode.get_events();
             core.endGroup();

@@ -21,6 +21,7 @@ interface Inputs {
 interface DispatchConfig {
   name?: string;
   version?: string;
+  commit?: string;
   folder?: string;
   profiles?: string[];
   settings?: {string};
@@ -40,8 +41,8 @@ enum DispatchMode {
 interface Payload {
     tags?: [string];
     image?: string;
-    ref?: string;
-    sha?: string;
+    branch?: string;
+    commit?: string;
     mode?: DispatchMode;
     package?: string;
     profile?: string;
@@ -71,10 +72,10 @@ class Mode {
   async load_config_file(conf_path: string): Promise<Set<DispatchConfig>> {
     const name = path.basename(path.dirname(conf_path));
     const conf_raw = fs.readFileSync(conf_path, "utf8");
-    return this.set_default_config_values(name, conf_raw)
+    return this.load_config(name, conf_raw)
   }
 
-  async set_default_config_values(name: string, conf_raw: string): Promise<Set<DispatchConfig>> {
+  async load_config(name: string, conf_raw: string): Promise<Set<DispatchConfig>> {
     const conf = YAML.parse(conf_raw) as [DispatchConfig];
     const disps = new Set<DispatchConfig>();
     conf.forEach((disp) => {
@@ -169,14 +170,21 @@ class Mode {
           image += "-bootstrap";
         }
 
+        // Find branch and commit
+        const branch = process.env.GITHUB_REF;
+        const version = branch == "master" ? disp.version
+                      : `${disp.version}-${branch}`;
+        const commit = disp.commit ? disp.commit
+                      : process.env.GITHUB_SHA;
+        
         // Create payload
         const payload: Payload = {
             tags,
             image,
-            ref: process.env.GITHUB_REF,
-            sha: process.env.GITHUB_SHA,
+            branch,
+            commit,
             mode: await this.get_mode(disp),
-            package: `${disp.name}/${disp.version}`,
+            package: `${disp.name}/${version}`,
             profile,
             args,
             path: path.join(this.root, disp.name as string, disp.folder as string),
@@ -209,12 +217,12 @@ class Mode {
 }
 
 class GitMode extends Mode {
-  rev: string;
+  last_rev: string;
   git: SimpleGit;
 
   constructor(inputs: Inputs) {
     super(inputs)
-    this.rev = "HEAD^";
+    this.last_rev = process.env.GITHUB_LAST_REV || "HEAD^";
     this.git = simpleGit();
   }
 
@@ -233,7 +241,7 @@ class GitMode extends Mode {
   async find_dispatches(): Promise<Set<DispatchConfig>> {
     const disps = new Set<DispatchConfig>();
     // Compare to previous commit
-    const diff = await this.git.diffSummary(["HEAD", this.rev]);
+    const diff = await this.git.diffSummary(["HEAD", this.last_rev]);
     for (const f of diff.files) {
       let file_path = f.file;
       // Handle file renaming
@@ -265,8 +273,8 @@ class GitMode extends Mode {
 
   async handle_config_change(name: string, conf_path: string): Promise<Set<DispatchConfig>> {
     // New config.yml
-    const conf_new = await this.set_default_config_values(name, await this.git.show([`HEAD:${conf_path}`]));
-    const files_old = await this.git.raw(["ls-tree", "-r", this.rev]);
+    const conf_new = await this.load_config(name, await this.git.show([`HEAD:${conf_path}`]));
+    const files_old = await this.git.raw(["ls-tree", "-r", this.last_rev]);
     if (!files_old.includes(conf_path)) {
       core.info(`Created: ${conf_path}`);
       conf_new.forEach((disp) => {
@@ -280,7 +288,7 @@ class GitMode extends Mode {
     // Compare to old config.yml
     core.info(`Changed: ${conf_path}`);
     const disps = new Set<DispatchConfig>();
-    const conf_old = await this.set_default_config_values(name, await this.git.show([`${this.rev}:${conf_path}`]));
+    const conf_old = await this.load_config(name, await this.git.show([`${this.last_rev}:${conf_path}`]));
     const hashs_old = [...conf_old].map(disp => hash(disp));
     conf_new.forEach((disp_new) => {
       // Check if dispatch existed in old commit or if dispatch data changed
@@ -297,8 +305,7 @@ class GitMode extends Mode {
 
   async handle_file_change(name: string, conf_path: string, file_path: string): Promise<Set<DispatchConfig>> {
     const disps = new Set<DispatchConfig>();
-    const conf_raw = await this.git.show([`HEAD:${conf_path}`]);
-    const conf = await this.set_default_config_values(name, conf_raw);
+    const conf = await this.load_config_file(conf_path);
     conf.forEach((disp) => {
       if (file_path.startsWith(path.join(this.root, name, disp.folder as string))) {
         const disp_hash = hash(disp);
