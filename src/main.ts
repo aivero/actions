@@ -171,7 +171,7 @@ class Mode {
         }
 
         // Find branch and commit
-        const branch = process.env.GITHUB_REF;
+        const branch = process.env.GITHUB_REF?.split("/")[2];
         const version = branch == "master" ? disp.version
                       : `${disp.version}-${branch}`;
         const commit = disp.commit ? disp.commit

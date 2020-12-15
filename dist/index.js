@@ -5495,6 +5495,7 @@ class Mode {
                     return;
                 }
                 disp.profiles.forEach((profile) => __awaiter(this, void 0, void 0, function* () {
+                    var _a;
                     let image = "aivero/conan:";
                     let tags;
                     // OS options
@@ -5524,7 +5525,7 @@ class Mode {
                         image += "-bootstrap";
                     }
                     // Find branch and commit
-                    const branch = process.env.GITHUB_REF;
+                    const branch = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
                     const version = branch == "master" ? disp.version
                         : `${disp.version}-${branch}`;
                     const commit = disp.commit ? disp.commit
