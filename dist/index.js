@@ -5544,7 +5544,7 @@ class Mode {
                     };
                     // Create event
                     const [owner, repo] = this.repo.split("/");
-                    const event_type = `${disp.name}/${disp.version}: ${profile}`;
+                    const event_type = `${disp.name}/${version}: ${profile}`;
                     const client_payload = payload;
                     const event = {
                         owner,
