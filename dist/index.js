@@ -5580,7 +5580,7 @@ class GitMode extends Mode {
     find_config(dir) {
         return __awaiter(this, void 0, void 0, function* () {
             const dir_ori = dir;
-            while (dir != this.root) {
+            while (dir != ".") {
                 const conf_path = path.join(dir, CONFIG_NAME);
                 if (fs_1.default.existsSync(conf_path)) {
                     return conf_path;

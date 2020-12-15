@@ -229,7 +229,7 @@ class GitMode extends Mode {
 
   async find_config(dir: string): Promise<string> {
     const dir_ori = dir;
-    while (dir != this.root) {
+    while (dir != ".") {
       const conf_path = path.join(dir, CONFIG_NAME);
       if (fs.existsSync(conf_path)) {
         return conf_path;
