@@ -66,7 +66,8 @@ class Mode {
   constructor(inputs: Inputs) {
     this.args = inputs.arguments;
     this.repo = inputs.repository;
-    this.root = inputs.root;
+    this.root = path.isAbsolute(inputs.root) ? inputs.root
+              : path.join(process.cwd(), inputs.root);
   }
 
   async load_config_file(conf_path: string): Promise<Set<DispatchConfig>> {
