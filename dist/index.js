@@ -5469,10 +5469,11 @@ class Mode {
         });
     }
     get_events() {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const events = new Set();
             const disps = yield this.find_dispatches();
-            disps.forEach((disp) => __awaiter(this, void 0, void 0, function* () {
+            for (const disp of disps) {
                 // Arguments
                 let args = this.args;
                 if (disp.settings) {
@@ -5493,10 +5494,9 @@ class Mode {
                 args.trim();
                 // Get build combinations
                 if (disp.profiles == undefined) {
-                    return;
+                    continue;
                 }
-                disp.profiles.forEach((profile) => __awaiter(this, void 0, void 0, function* () {
-                    var _a;
+                for (const profile of disp.profiles) {
                     let image = "aivero/conan:";
                     let tags;
                     // OS options
@@ -5554,8 +5554,8 @@ class Mode {
                         client_payload
                     };
                     events.add(event);
-                }));
-            }));
+                }
+            }
             return events;
         });
     }
@@ -5594,8 +5594,8 @@ class GitMode extends Mode {
             const disps = new Set();
             // Compare to previous commit
             const diff = yield this.git.diffSummary(["HEAD", this.last_rev]);
-            diff.files.forEach((diff) => __awaiter(this, void 0, void 0, function* () {
-                let file_path = diff.file;
+            for (const d of diff.files) {
+                let file_path = d.file;
                 // Handle file renaming
                 if (file_path.includes(" => ")) {
                     core.info(`Renamed: ${file_path}`);
@@ -5603,14 +5603,14 @@ class GitMode extends Mode {
                 }
                 // Only handle files that exist in current commit
                 if (!fs_1.default.existsSync(file_path)) {
-                    return;
+                    continue;
                 }
                 const file = path.basename(file_path);
                 const file_dir = path.dirname(file_path);
                 const conf_path = yield this.find_config(file_dir);
                 if (!conf_path) {
                     core.info(`Couldn't find ${CONFIG_NAME} for file: ${file}`);
-                    return;
+                    continue;
                 }
                 const name = path.basename(path.dirname(conf_path));
                 let disps_new;
@@ -5621,7 +5621,7 @@ class GitMode extends Mode {
                     disps_new = yield this.handle_file_change(name, conf_path, file_path);
                 }
                 disps_new.forEach(disps.add, disps);
-            }));
+            }
             return disps;
         });
     }
@@ -5659,7 +5659,7 @@ class GitMode extends Mode {
             const disps = new Set();
             const conf = yield this.load_config_file(conf_path);
             conf.forEach((disp) => {
-                if (file_path.startsWith(path.join(this.root, name, disp.folder))) {
+                if (path.join(this.root, name, disp.folder).endsWith(path.dirname(file_path))) {
                     const disp_hash = object_hash_1.default(disp);
                     core.info(`Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`);
                     disps.add(disp);

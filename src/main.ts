@@ -118,7 +118,7 @@ class Mode {
 
     const disps = await this.find_dispatches();
     
-    disps.forEach(async (disp) => {
+    for (const disp of disps) {
       // Arguments
       let args = this.args;
       if (disp.settings) {
@@ -140,9 +140,9 @@ class Mode {
 
       // Get build combinations
       if (disp.profiles == undefined) {
-          return;
+          continue;
       }
-      disp.profiles.forEach(async (profile) => {
+      for (const profile of disp.profiles) {
         let image = "aivero/conan:";
         let tags;
 
@@ -202,8 +202,8 @@ class Mode {
            client_payload
         };
         events.add(event)
-      });
-    });
+      }
+    }
     return events;    
   }
 
@@ -242,8 +242,8 @@ class GitMode extends Mode {
     const disps = new Set<DispatchConfig>();
     // Compare to previous commit
     const diff = await this.git.diffSummary(["HEAD", this.last_rev]);
-    diff.files.forEach(async diff => {
-      let file_path = diff.file;
+    for (const d of diff.files) {
+      let file_path = d.file;
       // Handle file renaming
       if (file_path.includes(" => ")) {
         core.info(`Renamed: ${file_path}`);
@@ -252,7 +252,7 @@ class GitMode extends Mode {
 
       // Only handle files that exist in current commit
       if (!fs.existsSync(file_path)) {
-        return;
+        continue;
       }
 
       const file = path.basename(file_path);
@@ -260,7 +260,7 @@ class GitMode extends Mode {
       const conf_path = await this.find_config(file_dir);
       if (!conf_path) {
           core.info(`Couldn't find ${CONFIG_NAME} for file: ${file}`);
-          return;
+          continue;
       }
       const name = path.basename(path.dirname(conf_path));
 
@@ -271,7 +271,7 @@ class GitMode extends Mode {
         disps_new = await this.handle_file_change(name, conf_path, file_path);
       }
       disps_new.forEach(disps.add, disps);
-    });
+    }
     return disps;
   }
 
@@ -311,7 +311,7 @@ class GitMode extends Mode {
     const disps = new Set<DispatchConfig>();
     const conf = await this.load_config_file(conf_path);
     conf.forEach((disp) => {
-      if (file_path.startsWith(path.join(this.root, name, disp.folder as string))) {
+      if (path.join(this.root, name, disp.folder as string).endsWith(path.dirname(file_path))) {
         const disp_hash = hash(disp);
         core.info(
           `Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`,
