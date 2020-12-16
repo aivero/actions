@@ -8,7 +8,7 @@ inputs:
     description: 'The full name of the repository to send the dispatch.'
     default: ${{ github.repository }}
   root:
-    description: 'Absolut or relative path to directory with packages'
+    description: 'Relative path to directory with packages'
     default: recipes
   package:
     description: 'Name/Version of package to dispatch.'

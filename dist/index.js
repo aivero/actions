@@ -5423,8 +5423,7 @@ class Mode {
     constructor(inputs) {
         this.args = inputs.arguments;
         this.repo = inputs.repository;
-        this.root = path.isAbsolute(inputs.root) ? inputs.root
-            : path.join(process.cwd(), inputs.root);
+        this.root = inputs.root;
     }
     load_config_file(conf_path) {
         return __awaiter(this, void 0, void 0, function* () {
