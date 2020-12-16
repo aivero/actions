@@ -5579,7 +5579,6 @@ class GitMode extends Mode {
     }
     find_config(dir) {
         return __awaiter(this, void 0, void 0, function* () {
-            const dir_ori = dir;
             while (dir != ".") {
                 const conf_path = path.join(dir, CONFIG_NAME);
                 if (fs_1.default.existsSync(conf_path)) {
@@ -5587,7 +5586,7 @@ class GitMode extends Mode {
                 }
                 dir = path.dirname(dir);
             }
-            throw Error(`Couldn't find ${CONFIG_NAME} for file: ${dir_ori}`);
+            return undefined;
         });
     }
     find_dispatches() {
@@ -5595,8 +5594,8 @@ class GitMode extends Mode {
             const disps = new Set();
             // Compare to previous commit
             const diff = yield this.git.diffSummary(["HEAD", this.last_rev]);
-            for (const f of diff.files) {
-                let file_path = f.file;
+            diff.files.forEach((diff) => __awaiter(this, void 0, void 0, function* () {
+                let file_path = diff.file;
                 // Handle file renaming
                 if (file_path.includes(" => ")) {
                     core.info(`Renamed: ${file_path}`);
@@ -5604,11 +5603,15 @@ class GitMode extends Mode {
                 }
                 // Only handle files that exist in current commit
                 if (!fs_1.default.existsSync(file_path)) {
-                    continue;
+                    return;
                 }
                 const file = path.basename(file_path);
                 const file_dir = path.dirname(file_path);
                 const conf_path = yield this.find_config(file_dir);
+                if (!conf_path) {
+                    core.info(`Couldn't find ${CONFIG_NAME} for file: ${file}`);
+                    return;
+                }
                 const name = path.basename(path.dirname(conf_path));
                 let disps_new;
                 if (file == CONFIG_NAME) {
@@ -5618,7 +5621,7 @@ class GitMode extends Mode {
                     disps_new = yield this.handle_file_change(name, conf_path, file_path);
                 }
                 disps_new.forEach(disps.add, disps);
-            }
+            }));
             return disps;
         });
     }
