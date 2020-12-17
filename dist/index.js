@@ -2803,7 +2803,7 @@ function run() {
             yield exec(`conan create -u ${args}${inputs.path} ${name}/${version}@`, true, false, env);
             yield exec(`conan create -u ${args}${inputs.path} ${name}-dbg/${version}@`, true, false, env);
             // Select internal or public Conan repository according to license
-            const recipe = yaml_1.default.parse(yield exec(`conan inspect ${inputs.path}`, true, true));
+            const recipe = yaml_1.default.parse(yield exec(`conan inspect ./${inputs.path}`, true, true));
             let conan_repo = process.env.CONAN_REPO_PUBLIC;
             if (recipe["license"].includes("Proprietary")) {
                 conan_repo = process.env.CONAN_REPO_INTERNAL;
