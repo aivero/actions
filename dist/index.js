@@ -5591,6 +5591,7 @@ class GitMode extends Mode {
     find_dispatches() {
         return __awaiter(this, void 0, void 0, function* () {
             const disps = new Set();
+            const disps_hash = new Set();
             // Compare to previous commit
             const diff = yield this.git.diffSummary(["HEAD", this.last_rev]);
             for (const d of diff.files) {
@@ -5619,7 +5620,13 @@ class GitMode extends Mode {
                 else {
                     disps_new = yield this.handle_file_change(name, conf_path, file_path);
                 }
-                disps_new.forEach(disps.add, disps);
+                disps_new.forEach(disp => {
+                    const disp_hash = object_hash_1.default(disp);
+                    if (!disps_hash.has(disp_hash)) {
+                        disps_hash.add(disp_hash);
+                        disps.add(disp);
+                    }
+                });
             }
             return disps;
         });

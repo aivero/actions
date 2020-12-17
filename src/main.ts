@@ -239,6 +239,7 @@ class GitMode extends Mode {
 
   async find_dispatches(): Promise<Set<DispatchConfig>> {
     const disps = new Set<DispatchConfig>();
+    const disps_hash = new Set<string>();
     // Compare to previous commit
     const diff = await this.git.diffSummary(["HEAD", this.last_rev]);
     for (const d of diff.files) {
@@ -269,7 +270,13 @@ class GitMode extends Mode {
       } else {
         disps_new = await this.handle_file_change(name, conf_path, file_path);
       }
-      disps_new.forEach(disps.add, disps);
+      disps_new.forEach(disp => {
+          const disp_hash = hash(disp);
+          if (!disps_hash.has(disp_hash)) {
+            disps_hash.add(disp_hash);
+            disps.add(disp); 
+          }
+      });
     }
     return disps;
   }
