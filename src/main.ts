@@ -85,9 +85,9 @@ class Mode {
       }
 
       // Default folder
-      const folder = ".";
+      const folder = name;
       if (disp.folder == undefined) {
-        disp.folder = folder;
+        disp.folder = path.join(name, folder);
       }
 
       // Default profiles
@@ -187,7 +187,7 @@ class Mode {
             package: `${disp.name}/${version}`,
             profile,
             args,
-            path: path.join(this.root, disp.name as string, disp.folder as string),
+            path: path.join(this.root, disp.folder as string),
         }
 
         // Create event

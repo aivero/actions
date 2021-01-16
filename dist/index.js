@@ -5442,9 +5442,9 @@ class Mode {
                     disp.name = name;
                 }
                 // Default folder
-                const folder = ".";
+                const folder = name;
                 if (disp.folder == undefined) {
-                    disp.folder = folder;
+                    disp.folder = path.join(name, folder);
                 }
                 // Default profiles
                 const profiles = [
@@ -5540,7 +5540,7 @@ class Mode {
                         package: `${disp.name}/${version}`,
                         profile,
                         args,
-                        path: path.join(this.root, disp.name, disp.folder),
+                        path: path.join(this.root, disp.folder),
                     };
                     // Create event
                     const [owner, repo] = this.repo.split("/");
