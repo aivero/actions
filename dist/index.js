@@ -5477,7 +5477,7 @@ class Mode {
                 let args = this.args;
                 if (disp.settings) {
                     for (const [set, val] of Object.entries(disp.settings)) {
-                        args += ` ${disp.name}:${set}=${val}`;
+                        args += ` -s ${disp.name}:${set}=${val}`;
                     }
                 }
                 // Options
@@ -5487,7 +5487,7 @@ class Mode {
                         const res = val == true ? "True"
                             : val == false ? "False"
                                 : val;
-                        args += ` ${disp.name}:${opt}=${res}`;
+                        args += ` -o ${disp.name}:${opt}=${res}`;
                     }
                 }
                 args.trim();
