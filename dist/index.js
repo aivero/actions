@@ -5442,9 +5442,11 @@ class Mode {
                     disp.name = name;
                 }
                 // Default folder
-                const folder = name;
-                if (disp.folder == undefined) {
-                    disp.folder = path.join(name, folder);
+                if (disp.folder) {
+                    disp.folder = path.join(name, disp.folder);
+                }
+                else {
+                    disp.folder = name;
                 }
                 // Default profiles
                 const profiles = [
