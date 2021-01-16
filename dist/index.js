@@ -5560,12 +5560,13 @@ class Mode {
     }
     get_mode(disp) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (fs_1.default.existsSync(path.join(this.root, disp.name, disp.folder, "conanfile.py"))) {
-                return DispatchMode.Conan;
-            }
-            else if (fs_1.default.existsSync(path.join(this.root, disp.name, disp.folder, "Cargo.toml"))) {
-                return DispatchMode.Cargo;
-            }
+            //if (fs.existsSync(path.join(this.root, disp.name as string, disp.folder as string, "conanfile.py"))) {
+            //    return DispatchMode.Conan;
+            //} else if (fs.existsSync(path.join(this.root, disp.name as string, disp.folder as string, "Cargo.toml"))) {
+            //    return DispatchMode.Cargo;
+            //}
+            // TODO: add support for other modes
+            return DispatchMode.Conan;
             throw Error(`Could not detect mode for folder: ${disp.folder}`);
         });
     }
