@@ -2748,7 +2748,7 @@ function exec(full_cmd, fail_on_error = true, return_stdout = false, env = proce
 function get_pkg_info(name, version, args) {
     return __awaiter(this, void 0, void 0, function* () {
         const file = `/tmp/${name}.json`;
-        yield exec(`conan info${args} ${name}/${version}@ --paths --json ${file}`);
+        yield exec(`conan info ${args}${name}/${version}@ --paths --json ${file}`);
         const pkg_info_json = fs_1.default.readFileSync(file, "utf8");
         return JSON.parse(pkg_info_json);
     });

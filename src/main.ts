@@ -58,7 +58,7 @@ async function exec(
 
 async function get_pkg_info(name: string, version: string, args: string) {
   const file = `/tmp/${name}.json`;
-  await exec(`conan info${args} ${name}/${version}@ --paths --json ${file}`);
+  await exec(`conan info ${args}${name}/${version}@ --paths --json ${file}`);
   const pkg_info_json = fs.readFileSync(file, "utf8");
   return JSON.parse(pkg_info_json);
 }
