@@ -86,7 +86,7 @@ async function run(): Promise<void> {
   try {
     const inputs = {
       package: core.getInput("package"),
-      arguments: core.getInput("arguments"),
+      args: core.getInput("args"),
       path: core.getInput("path"),
       profile: core.getInput("profile"),
     };
@@ -128,9 +128,9 @@ async function run(): Promise<void> {
     env.CONAN_CPU_COUNT = os.cpus().length;
 
     // Conan create
-    let args = inputs.arguments;
-    if (inputs.arguments) {
-        args = `${inputs.arguments.trim()} `;
+    let args = inputs.args;
+    if (inputs.args) {
+        args = `${inputs.args.trim()} `;
     };
     await exec(
       `conan create -u ${args}${inputs.path} ${name}/${version}@`,

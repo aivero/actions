@@ -2770,7 +2770,7 @@ function run() {
         try {
             const inputs = {
                 package: core.getInput("package"),
-                arguments: core.getInput("arguments"),
+                args: core.getInput("args"),
                 path: core.getInput("path"),
                 profile: core.getInput("profile"),
             };
@@ -2795,9 +2795,9 @@ function run() {
             let env = Object.create(process.env);
             env.CONAN_CPU_COUNT = os_1.default.cpus().length;
             // Conan create
-            let args = inputs.arguments;
-            if (inputs.arguments) {
-                args = `${inputs.arguments.trim()} `;
+            let args = inputs.args;
+            if (inputs.args) {
+                args = `${inputs.args.trim()} `;
             }
             ;
             yield exec(`conan create -u ${args}${inputs.path} ${name}/${version}@`, true, false, env);
