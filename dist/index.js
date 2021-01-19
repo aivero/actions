@@ -5668,7 +5668,7 @@ class GitMode extends Mode {
             const disps = new Set();
             const conf = yield this.load_config_file(conf_path);
             conf.forEach((disp) => {
-                if (path.join(this.root, name, disp.folder).endsWith(path.dirname(file_path))) {
+                if (path.join(this.root, disp.folder).endsWith(path.dirname(file_path))) {
                     const disp_hash = object_hash_1.default(disp);
                     core.info(`Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`);
                     disps.add(disp);
