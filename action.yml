@@ -9,7 +9,7 @@ inputs:
     default: ${{ github.repository }}
   root:
     description: 'Relative path to directory with packages'
-    default: recipes
+    default:
   package:
     description: 'Name/Version of package to dispatch.'
     default:
