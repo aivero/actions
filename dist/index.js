@@ -5436,10 +5436,24 @@ class Mode {
         return __awaiter(this, void 0, void 0, function* () {
             const conf = yaml_1.default.parse(conf_raw);
             const disps = new Set();
+            // Empty conf file
+            if (conf == null) {
+                return disps;
+            }
             conf.forEach((disp) => {
+                var _a;
+                // Empty build
+                if (disp == null) {
+                    disp = {};
+                }
                 // Name
                 if (disp.name == undefined) {
                     disp.name = name;
+                }
+                // Version
+                if (disp.version == undefined) {
+                    // Set version to branch name
+                    disp.version = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
                 }
                 // Default folder
                 if (disp.folder) {
@@ -5528,8 +5542,6 @@ class Mode {
                     }
                     // Find branch and commit
                     const branch = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
-                    const version = branch == "master" ? disp.version
-                        : `${disp.version}-${branch}`;
                     const commit = disp.commit ? disp.commit
                         : process.env.GITHUB_SHA;
                     // Create payload
@@ -5539,14 +5551,14 @@ class Mode {
                         branch,
                         commit,
                         mode: yield this.get_mode(disp),
-                        package: `${disp.name}/${version}`,
+                        package: `${disp.name}/${disp.version}`,
                         profile,
                         args,
                         path: path.join(this.root, disp.folder),
                     };
                     // Create event
                     const [owner, repo] = this.repo.split("/");
-                    const event_type = `${disp.name}/${version}: ${profile}`;
+                    const event_type = `${disp.name}/${disp.version}: ${profile}`;
                     const client_payload = payload;
                     const event = {
                         owner,
