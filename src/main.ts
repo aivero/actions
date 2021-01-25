@@ -78,10 +78,24 @@ class Mode {
   async load_config(name: string, conf_raw: string): Promise<Set<DispatchConfig>> {
     const conf = YAML.parse(conf_raw) as [DispatchConfig];
     const disps = new Set<DispatchConfig>();
+    // Empty conf file
+    if (conf == null) {
+      return disps;
+    }
     conf.forEach((disp) => {
+      // Empty build
+      if (disp == null) {
+        disp = {} as DispatchConfig;
+      }
       // Name
       if (disp.name == undefined) {
         disp.name = name;
+      }
+      
+      // Version
+      if (disp.version == undefined) {
+        // Set version to branch name
+        disp.version = process.env.GITHUB_REF?.split("/")[2];
       }
 
       // Default folder
@@ -173,8 +187,6 @@ class Mode {
 
         // Find branch and commit
         const branch = process.env.GITHUB_REF?.split("/")[2];
-        const version = branch == "master" ? disp.version
-                      : `${disp.version}-${branch}`;
         const commit = disp.commit ? disp.commit
                       : process.env.GITHUB_SHA;
         
@@ -185,7 +197,7 @@ class Mode {
             branch,
             commit,
             mode: await this.get_mode(disp),
-            package: `${disp.name}/${version}`,
+            package: `${disp.name}/${disp.version}`,
             profile,
             args,
             path: path.join(this.root, disp.folder as string),
@@ -193,7 +205,7 @@ class Mode {
 
         // Create event
         const [owner, repo] = this.repo.split("/");
-        const event_type = `${disp.name}/${version}: ${profile}`;
+        const event_type = `${disp.name}/${disp.version}: ${profile}`;
         const client_payload = payload;
         const event: Event = {
            owner,
