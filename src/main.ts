@@ -7,47 +7,50 @@ import YAML from "yaml";
 import fs from "fs";
 import * as path from "path";
 import hash from "object-hash";
+import { parse, createVisitor } from 'python-ast';
 
 const CONFIG_NAME = "devops.yml";
 
 interface Inputs {
     token: string;
     repository: string;
-    root: string;
-    package: string;
+    component: string;
     arguments: string;
 }
 
-interface DispatchConfig {
-  name?: string;
+interface Instance {
+  name: string;
   version?: string;
   commit?: string;
-  folder?: string;
+  folder: string;
+  cmds?: string[];
+  cmdsPost?: string[];
+  image?: ImageConfig;
+}
+
+interface ConanInstance extends Instance {
   profiles?: string[];
   settings?: {string};
   options?: {string};
-  image?: ImageConfig;
 }
 
 interface ImageConfig {
   bootstrap?: boolean;
 }
 
-enum DispatchMode {
+enum SelectMode {
     Conan = "Conan",
-    Cargo = "Cargo"
+    Docker = "Docker",
+    Command = "Command",
 }
 
 interface Payload {
-    tags?: [string];
+    tags?: string[];
     image?: string;
     branch?: string;
     commit?: string;
-    mode?: DispatchMode;
-    package?: string;
-    profile?: string;
-    args?: string;
-    path?: string;
+    cmds?: string[];
+    cmdsPost?: string[];
 }
 
 interface Event extends RequestParameters {
@@ -57,319 +60,352 @@ interface Event extends RequestParameters {
     client_payload: Payload,
 }
 
-
 class Mode {
   args: string;
   repo: string;
-  root: string;
+  token: string;
+  git: SimpleGit;
 
   constructor(inputs: Inputs) {
     this.args = inputs.arguments;
     this.repo = inputs.repository;
-    this.root = inputs.root;
+    this.token = inputs.token;
+    this.git = simpleGit();
+  
   }
 
-  async load_config_file(conf_path: string): Promise<Set<DispatchConfig>> {
-    const name = path.basename(path.dirname(conf_path));
-    const conf_raw = fs.readFileSync(conf_path, "utf8");
-    return this.load_config(name, conf_raw)
+  async loadConfigFile(confPath: string): Promise<{}[]> {
+    const confRaw = fs.readFileSync(confPath, "utf8");
+    return this.loadConfig(confPath, confRaw)
   }
 
-  async load_config(name: string, conf_raw: string): Promise<Set<DispatchConfig>> {
-    const conf = YAML.parse(conf_raw) as [DispatchConfig];
-    const disps = new Set<DispatchConfig>();
+  async loadConfig(confPath: string, confRaw: string): Promise<{}[]> {
+    const folder = path.dirname(confPath);
+    const name = path.basename(folder);
+    const conf = YAML.parse(confRaw);
+    let ints: {}[] = [];
     // Empty conf file
     if (conf == null) {
-      return disps;
+      return ints;
     }
-    conf.forEach((disp) => {
-      // Empty build
-      if (disp == null) {
-        disp = {} as DispatchConfig;
+    for (let int of conf) {
+      // Empty instance
+      if (int == null) {
+        int = {};
       }
       // Name
-      if (disp.name == undefined) {
-        disp.name = name;
+      if (int.name == undefined) {
+        int.name = name;
       }
       
       // Version
-      if (disp.version == undefined) {
+      if (int.version == undefined) {
         // Set version to branch name
-        disp.version = process.env.GITHUB_REF?.split("/")[2];
+        int.version = process.env.GITHUB_REF?.split("/")[2];
       }
 
       // Default folder
-      if (disp.folder) {
-        disp.folder = path.join(name, disp.folder);
+      if (int.folder) {
+        int.folder = path.join(folder, int.folder);
       } else {
-        disp.folder = name;
+        int.folder = folder;
       }
 
-      // Default profiles
-      const profiles = [
-        "Linux-x86_64",
-        "Linux-armv8",
-      ];
-      if (disp.profiles == undefined) {
-        disp.profiles = profiles;
+      if (int.image == undefined) {
+        int.image = { boostrap: false };
       }
+      ints.push(int);
+    };
 
-      if (disp.image == undefined) {
-        disp.image = { boostrap: false } as ImageConfig;
-      }
-      disps.add(disp);
-    });
-
-    return disps;
+    return ints;
   }
 
-  async find_dispatches(): Promise<Set<DispatchConfig>> {
+  async findInstances(): Promise<{}[]> {
       throw Error("Not implemented!");
   }
 
-  async get_events(): Promise<Set<Event>> {
-    const events = new Set<Event>();
+  async getBasePayload(int: Instance): Promise<Payload> {
+        // Find branch and commit
+        const branch = process.env.GITHUB_REF?.split("/")[2];
+        const commit = int.commit ? int.commit
+                      : process.env.GITHUB_SHA;
+        
+        // Create payload
+        return {
+            branch,
+            commit,
+        }   
+  }
 
-    const disps = await this.find_dispatches();
-    
-    for (const disp of disps) {
+  async getConanPayload(int: ConanInstance): Promise<{ [name: string]: Payload}> {
+    let payloads: { [name: string]: Payload} = {};
+
+    // Default profiles
+    const profiles = [
+      "Linux-x86_64",
+      "Linux-armv8",
+    ];
+    if (int.profiles == undefined) {
+      int.profiles = profiles;
+    }
+
+    for (const profile of int.profiles) {
+      let payload = await this.getBasePayload(int);
+
       // Arguments
       let args = this.args;
-      if (disp.settings) {
-        for (const [set, val] of Object.entries(disp.settings)) {
-          args += ` -s ${disp.name}:${set}=${val}`;
+      if (int.settings) {
+        for (const [set, val] of Object.entries(int.settings)) {
+          args += ` -s ${int.name}:${set}=${val}`;
         }
       }
       // Options
-      if (disp.options) {
-        for (const [opt, val] of Object.entries(disp.options)) {
+      if (int.options) {
+        for (const [opt, val] of Object.entries(int.options)) {
           // Convert to Python bool
           const res = val == true ? "True"
                     : val == false ? "False"
                     : val;
-          args += ` -o ${disp.name}:${opt}=${res}`;
+          args += ` -o ${int.name}:${opt}=${res}`;
         }
       }
-      args.trim();
 
-      // Get build combinations
-      if (disp.profiles == undefined) {
-          continue;
+      // Check if package is proprietary
+      const conanfilePath = fs.readFileSync(path.join(int.folder, "conanfile.py"), "utf8");
+      const conanfileAst = parse(conanfilePath);
+      let license: string = "";
+      createVisitor({
+        shouldVisitNextChild: () => license == "",
+        visitExpr_stmt: (expr) => {
+          if (expr.children?.length == 3 && expr.children[0].text == "license") {
+            license = expr.children[2].text
+          }
+        }
+      }).visit(conanfileAst);
+      if (license == "") {
+        throw Error(`No license in '${conanfilePath}'`);
       }
-      for (const profile of disp.profiles) {
-        let image = "aivero/conan:";
-        let tags;
+      let conanRepo = "$CONAN_REPO_PUBLIC";
+      if (license.includes("Proprietary")) {
+        conanRepo = "$CONAN_REPO_INTERNAL";
+      }
 
-        // OS options
-        if (profile.includes("musl")) {
-          image += "alpine";
-        } else if (profile.includes("Linux") || profile.includes("Wasi")) {
-          image += "bionic";
-        } else if (profile.includes("Windows")) {
-          image += "windows";
-        } else if (profile.includes("Macos")) {
-          image += "macos";
-        }
+      const cmds = int.cmds || [];
+      payload.cmds = cmds.concat([
+        `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
+        `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
+        `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
+        `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
+        `conan config set general.default_profile=${profile}`,
+        `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
+        `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
+        `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
+        `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
+      ])
 
-        // Arch options
-        if (profile.includes("x86_64") || profile.includes("wasm")) {
-          image += "-x86_64";
-          tags = ["X64"];
-        } else if (profile.includes("armv8")) {
-          image += "-armv8";
-          tags = ["ARM64"];
-        }
+      const cmdsPost = int.cmdsPost || [];
+      payload.cmdsPost = cmdsPost.concat([
+        `conan remove --locks`,
+        `conan remove * -f`,
+      ])
 
-        // Handle bootstrap packages
-        if (disp.image && disp.image.bootstrap) {
-          image += "-bootstrap";
-        }
+      const eventName = `${int.name}/${int.version}: ${profile}`;
+      payloads[eventName] = payload;
+    }
+    return payloads;
+  }
 
-        // Find branch and commit
-        const branch = process.env.GITHUB_REF?.split("/")[2];
-        const commit = disp.commit ? disp.commit
-                      : process.env.GITHUB_SHA;
-        
-        // Create payload
-        const payload: Payload = {
-            tags,
-            image,
-            branch,
-            commit,
-            mode: await this.get_mode(disp),
-            package: `${disp.name}/${disp.version}`,
-            profile,
-            args,
-            path: path.join(this.root, disp.folder as string),
-        }
+  async dispatchInstances(ints: {}[]) {
+    core.startGroup("Dispatch instances");
+    
+    const [owner, repo] = this.repo.split("/");
+    const octokit = github.getOctokit(this.token);
 
-        // Create event
-        const [owner, repo] = this.repo.split("/");
-        const event_type = `${disp.name}/${disp.version}: ${profile}`;
-        const client_payload = payload;
+    let payloads: { [name: string]: Payload} = {};
+    for (const int of ints) {
+      const mode = this.get_mode(int as Instance);
+      switch (mode) {
+        case SelectMode.Conan:
+          payloads = await this.getConanPayload(int as ConanInstance);
+          break;
+        default:
+          throw Error(`Mode '${mode}' is not supported yet.`);
+      }
+
+      for (const [event_type, client_payload] of Object.entries(payloads)) {
         const event: Event = {
            owner,
            repo,
            event_type,
            client_payload
         };
-        events.add(event)
+        core.info(`${inspect(event.client_payload)}`);
+        await octokit.repos.createDispatchEvent(event);
       }
     }
-    return events;    
+    core.endGroup();
   }
 
-  async get_mode(disp: DispatchConfig): Promise<DispatchMode> {
-    //if (fs.existsSync(path.join(this.root, disp.name as string, disp.folder as string, "conanfile.py"))) {
-    //    return DispatchMode.Conan;
-    //} else if (fs.existsSync(path.join(this.root, disp.name as string, disp.folder as string, "Cargo.toml"))) {
-    //    return DispatchMode.Cargo;
-    //}
+  get_mode(int: Instance): SelectMode {
+    if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
+        return SelectMode.Docker;
+    } else if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
+        return SelectMode.Conan;
+    } else if (int.cmds) {
+        return SelectMode.Command;
+    }
     // TODO: add support for other modes
-    return DispatchMode.Conan;
-    throw Error(`Could not detect mode for folder: ${disp.folder}`);
+    throw Error(`Could not detect mode for folder: ${int.folder}`);
   }
 }
 
 class GitMode extends Mode {
-  last_rev: string;
-  git: SimpleGit;
+  lastRev: string;
 
   constructor(inputs: Inputs) {
     super(inputs)
-    this.last_rev = process.env.GITHUB_LAST_REV || "HEAD^";
-    this.git = simpleGit();
+    this.lastRev = process.env.GITHUB_LAST_REV || "HEAD^";
   }
 
-  async find_config(dir: string): Promise<string | undefined> {
+  async findConfig(dir: string): Promise<string | undefined> {
     while (dir != ".") {
-      const conf_path = path.join(dir, CONFIG_NAME);
-      if (fs.existsSync(conf_path)) {
-        return conf_path;
+      const confPath = path.join(dir, CONFIG_NAME);
+      if (fs.existsSync(confPath)) {
+        return confPath;
       }
       dir = path.dirname(dir);
     }
     return undefined;
   }
 
-  async find_dispatches(): Promise<Set<DispatchConfig>> {
-    const disps = new Set<DispatchConfig>();
-    const disps_hash = new Set<string>();
+  async findInstances(): Promise<{}[]> {
+    core.startGroup("Git Mode: Create instances from changed files in git");
+    let ints: {}[] = [];
+    const intsHash = new Set<string>();
     // Compare to previous commit
-    const diff = await this.git.diffSummary(["HEAD", this.last_rev]);
+    const diff = await this.git.diffSummary(["HEAD", this.lastRev]);
     for (const d of diff.files) {
-      let file_path = d.file;
+      let filePath = d.file;
       // Handle file renaming
-      if (file_path.includes(" => ")) {
-        core.info(`Renamed: ${file_path}`);
-        file_path = file_path.replace(/{(.*) => .*}/, "$1");
+      if (filePath.includes(" => ")) {
+        core.info(`Renamed: ${filePath}`);
+        filePath = filePath.replace(/{(.*) => .*}/, "$1");
       }
 
       // Only handle files that exist in current commit
-      if (!fs.existsSync(file_path)) {
+      if (!fs.existsSync(filePath)) {
         continue;
       }
 
-      const file = path.basename(file_path);
-      const file_dir = path.dirname(file_path);
-      const conf_path = await this.find_config(file_dir);
-      if (!conf_path) {
+      const file = path.basename(filePath);
+      const fileDir = path.dirname(filePath);
+      const confPath = await this.findConfig(fileDir);
+      if (!confPath) {
           core.info(`Couldn't find ${CONFIG_NAME} for file: ${file}`);
           continue;
       }
-      const name = path.basename(path.dirname(conf_path));
 
-      let disps_new: Set<DispatchConfig>;
+      let intsNew: {}[];
       if (file == CONFIG_NAME) {
-        disps_new = await this.handle_config_change(name, file_path);
+        intsNew = await this.handleConfigChange(filePath);
       } else {
-        disps_new = await this.handle_file_change(name, conf_path, file_path);
+        intsNew = await this.handleFileChange(confPath, filePath);
       }
-      disps_new.forEach(disp => {
-          const disp_hash = hash(disp);
-          if (!disps_hash.has(disp_hash)) {
-            disps_hash.add(disp_hash);
-            disps.add(disp); 
+      for (const int of intsNew) {
+          const intHash = hash(int);
+          if (!intsHash.has(intHash)) {
+            intsHash.add(intHash);
+            ints.push(int); 
           }
-      });
+      };
     }
-    return disps;
+    core.endGroup()
+    return ints;
   }
 
-  async handle_config_change(name: string, conf_path: string): Promise<Set<DispatchConfig>> {
+  async handleConfigChange(confPath: string): Promise<{}[]> {
     // New config.yml
-    const conf_new = await this.load_config(name, await this.git.show([`HEAD:${conf_path}`]));
-    const files_old = await this.git.raw(["ls-tree", "-r", this.last_rev]);
-    if (!files_old.includes(conf_path)) {
-      core.info(`Created: ${conf_path}`);
-      conf_new.forEach((disp) => {
-        const disp_hash = hash(disp);
+    const confNew = await this.loadConfig(confPath, await this.git.show([`HEAD:${confPath}`]));
+    const filesOld = await this.git.raw(["ls-tree", "-r", this.lastRev]);
+    if (!filesOld.includes(confPath)) {
+      core.info(`Created: ${confPath}`);
+      for (const int of confNew) {
+        const intHash = hash(int);
+        let {name, version} = int as Instance;
         core.info(
-          `Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`,
+          `Instance name/version (hash): ${name}/${version} (${intHash})`,
         );
-      });
-      return conf_new;
+      };
+      return confNew;
     }
     // Compare to old config.yml
-    core.info(`Changed: ${conf_path}`);
-    const disps = new Set<DispatchConfig>();
-    const conf_old = await this.load_config(name, await this.git.show([`${this.last_rev}:${conf_path}`]));
-    const hashs_old = [...conf_old].map(disp => hash(disp));
-    conf_new.forEach((disp_new) => {
-      // Check if dispatch existed in old commit or if dispatch data changed
-      if (!hashs_old.includes(hash(disp_new))) {
-        const disp_hash = hash(disp_new);
+    core.info(`Changed: ${confPath}`);
+    let ints: {}[] = [];
+    const confOld = await this.loadConfig(confPath, await this.git.show([`${this.lastRev}:${confPath}`]));
+    const hashsOld = [...confOld].map(int => hash(int));
+    for (const intNew of confNew) {
+      // Check if instance existed in old commit or if instance data changed
+      if (!hashsOld.includes(hash(intNew))) {
+        const intHash = hash(intNew);
+        let {name, version} = intNew as Instance;
         core.info(
-          `Dispatch name/version (hash): ${disp_new.name}/${disp_new.version} (${disp_hash})`,
+          `Instance name/version (hash): ${name}/${version} (${intHash})`,
         );
-        disps.add(disp_new);
+        ints.push(intNew);
       }
-    });
-    return disps;
+    };
+    return ints;
   }
 
-  async handle_file_change(name: string, conf_path: string, file_path: string): Promise<Set<DispatchConfig>> {
-    const disps = new Set<DispatchConfig>();
-    const conf = await this.load_config_file(conf_path);
-    conf.forEach((disp) => {
-      if (path.join(this.root, disp.folder as string).endsWith(path.dirname(file_path))) {
-        const disp_hash = hash(disp);
+  async handleFileChange(confPath: string, filePath: string): Promise<{}[]> {
+    let ints: {}[] = [];
+    const conf = await this.loadConfigFile(confPath);
+    for (const int of conf) {
+      let {name, version, folder} = int as Instance;
+      if (path.join(folder).endsWith(path.dirname(filePath))) {
+        const intHash = hash(int);
         core.info(
-          `Dispatch name/version (hash): ${disp.name}/${disp.version} (${disp_hash})`,
+          `Instance name/version (hash): ${name}/${version} (${intHash})`,
         );
-        disps.add(disp);
+        ints.push(int);
       }
-    });
-    return disps;
+    };
+    return ints;
   }
 }
 
 class ManualMode extends Mode {
-  pkg: string;
+  component: string;
 
   constructor(inputs: Inputs) {
     super(inputs);
-    this.pkg = inputs.package;
+    this.component = inputs.component;
   }
 
-  async find_dispatches(): Promise<Set<DispatchConfig>> {
-    const disps = new Set<DispatchConfig>();
-    const [name, version] = this.pkg.split("/");
+  async findInstances(): Promise<{}[]> {
+    core.startGroup("Manual Mode: Create instances from manual input");
+    let ints: {}[] = [];
+    const [inputName, inputVersion] = this.component.split("/");
 
-    const conf_path = path.join(this.root, name, CONFIG_NAME);
-    const conf = await this.load_config_file(conf_path);
+    const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
 
-    conf.forEach((disp) => {
-      if (version != "*" && version != disp.version) {
-        return;
-      }
-      const pkg_hash = hash(disp);
-      core.info(
-        `Build pkg/ver (hash): ${disp.name}/${disp.version} (${pkg_hash})`,
-      );
-      disps.add(disp);
-    });
-    return disps;
+    for (const confPath of confPaths) {
+      const confInts = await this.loadConfigFile(confPath);
+      for (const int of confInts) {
+        const {name, version} = int as Instance;
+        if (inputName != "*" && inputName != name || 
+            inputVersion != "*" && inputVersion != version) {
+          continue;
+        }
+        const intHash = hash(ints);
+        core.info(
+          `Build component/version (hash): ${name}/${version} (${intHash})`,
+        );
+        ints.push(int);
+      };
+    };
+    core.endGroup()
+    return ints;
   }
 }
 
@@ -379,31 +415,21 @@ async function run(): Promise<void> {
     const inputs: Inputs = {
       token: core.getInput("token"),
       repository: core.getInput("repository"),
-      root: core.getInput("root"),
-      package: core.getInput("package"),
+      component: core.getInput("component"),
       arguments: core.getInput("arguments"),
     };
     core.debug(`Inputs: ${inspect(inputs)}`);
 
     let mode: Mode;
-    if (inputs.package) {
-      core.startGroup("Manual Mode: Create dispatches from manual input");
+    if (inputs.component) {
       mode = new ManualMode(inputs);
     } else {
-      core.startGroup("Git Mode: Create dispatches from changed files in git");
       mode = new GitMode(inputs);
     }
-    const events = await mode.get_events();
-    core.endGroup();
+    const ints = await mode.findInstances();
 
-    // Dispatch build for each build hash
-    core.startGroup("Dispatch Events");
-    const octokit = github.getOctokit(inputs.token);
-    events.forEach(async (event) => {
-      core.info(`${inspect(event.client_payload)}`);
-      await octokit.repos.createDispatchEvent(event);
-    });
-    core.endGroup();
+    await mode.dispatchInstances(ints);
+
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);

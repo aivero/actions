@@ -1,5 +1,5 @@
-name: 'Conan Dispatch'
-description: 'Create a conan dispatch event'
+name: 'Github Dispatcher'
+description: 'Create Github dispatch events'
 inputs:
   token:
     description: 'A repo scoped GitHub Personal Access Token'
@@ -7,14 +7,11 @@ inputs:
   repository:
     description: 'The full name of the repository to send the dispatch.'
     default: ${{ github.repository }}
-  root:
-    description: 'Relative path to directory with packages'
-    default:
-  package:
-    description: 'Name/Version of package to dispatch.'
+  component:
+    description: 'Name/Version of component to dispatch.'
     default:
   arguments:
-    description: 'Additional Conan arguments.'
+    description: 'Additional arguments.'
     default:
 runs:
   using: 'node12'
