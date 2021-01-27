@@ -1,18 +1,7 @@
-name: 'Conan action'
-description: 'Run Conan tasks'
+name: 'Github Runner action'
+description: 'Run Github tasks'
 inputs:
-  package:
-    description: 'Package name and version ({name}/{version})'
-    default:
-  args:
-    description: 'Conan arguments'
-    default:
-  path:
-    description: 'Package recipe folder path'
-    default: .
-  profile:
-    description: 'Conan profile'
-    default: default
+  
 runs:
   using: 'node12'
   main: 'dist/index.js'
