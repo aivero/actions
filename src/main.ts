@@ -62,12 +62,12 @@ async function exec(
 }
 
 interface Inputs {
-  cmds?: [string],
-  cmdsPost?: [string],
-  env: {string: string};
+  cmds?: string[],
+  cmdsPost?: string[],
+  env: {key: string};
 }
 
-async function runCmds(cmds: [string], env: {string: string}) {
+async function runCmds(cmds: string[], env = process.env) {
   try {
     for (const cmd of cmds) {
       await exec(cmd, env);
@@ -97,7 +97,7 @@ async function run(): Promise<void> {
   if (!inputs.cmds) {
     return;
   }
-  await runCmds(inputs.cmds, inputs.env)
+  await runCmds(inputs.cmds, env)
 }
 
 async function post(): Promise<void> {

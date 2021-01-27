@@ -225,7 +225,7 @@ function exec(full_cmd, env = process.env) {
         }
     });
 }
-function runCmds(cmds, env) {
+function runCmds(cmds, env = process.env) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             for (const cmd of cmds) {
@@ -255,7 +255,7 @@ function run() {
         if (!inputs.cmds) {
             return;
         }
-        yield runCmds(inputs.cmds, inputs.env);
+        yield runCmds(inputs.cmds, env);
     });
 }
 function post() {
