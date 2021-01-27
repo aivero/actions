@@ -11527,7 +11527,7 @@ class Mode {
                     conanRepo = "$CONAN_REPO_INTERNAL";
                 }
                 const cmds = int.cmds || [];
-                payload.cmds = cmds.concat([
+                payload.cmds = JSON.stringify(cmds.concat([
                     `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
@@ -11537,12 +11537,12 @@ class Mode {
                     `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                     `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
-                ]);
+                ]));
                 const cmdsPost = int.cmdsPost || [];
-                payload.cmdsPost = cmdsPost.concat([
+                payload.cmdsPost = JSON.stringify(cmdsPost.concat([
                     `conan remove --locks`,
                     `conan remove * -f`,
-                ]);
+                ]));
                 const eventName = `${int.name}/${int.version}: ${profile}`;
                 payloads[eventName] = payload;
             }
