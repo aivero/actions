@@ -11461,6 +11461,34 @@ class Mode {
             }
             for (const profile of int.profiles) {
                 let payload = yield this.getBasePayload(int);
+                // Base Conan image
+                payload.image = "aivero/conan:";
+                // OS options
+                if (profile.includes("musl")) {
+                    payload.image += "alpine";
+                }
+                else if (profile.includes("Linux") || profile.includes("Wasi")) {
+                    payload.image += "bionic";
+                }
+                else if (profile.includes("Windows")) {
+                    payload.image += "windows";
+                }
+                else if (profile.includes("Macos")) {
+                    payload.image += "macos";
+                }
+                // Arch options
+                if (profile.includes("x86_64") || profile.includes("wasm")) {
+                    payload.image += "-x86_64";
+                    payload.tags = ["X64"];
+                }
+                else if (profile.includes("armv8")) {
+                    payload.image += "-armv8";
+                    payload.tags = ["ARM64"];
+                }
+                // Handle bootstrap packages
+                if (int.image && int.image.bootstrap) {
+                    payload.image += "-bootstrap";
+                }
                 // Arguments
                 let args = this.args;
                 if (int.settings) {
