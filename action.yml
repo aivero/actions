@@ -1,7 +1,13 @@
 name: 'Github Runner action'
 description: 'Run Github tasks'
 inputs:
-  
+  cmds:
+    description: 'Commands to run'
+  cmdsPost:
+    description: 'Post commands to run'
+  env:
+    description: 'Environment variables set for commands'
+    default:
 runs:
   using: 'node12'
   main: 'dist/index.js'
