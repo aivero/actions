@@ -7,7 +7,7 @@ inputs:
     description: 'Post commands to run'
   env:
     description: 'Environment variables set for commands'
-    default: {}
+    default: '{}'
 runs:
   using: 'node12'
   main: 'dist/index.js'
