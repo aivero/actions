@@ -248,6 +248,10 @@ function run() {
         if (core.getInput("cmdPost")) {
             coreCommand.issueCommand("save-state", { name: "cmdsPost" }, core.getInput("cmdPost"));
         }
+        let env = process.env;
+        for (const [key, val] of Object.entries(inputs.env)) {
+            env[key] = val;
+        }
         if (!inputs.cmds) {
             return;
         }
