@@ -67,45 +67,52 @@ interface Inputs {
 }
 
 async function runCmds(cmds: string[], input_env: {key: string}): Promise<{}> {
+  // Overwrite environment variables
   let env = process.env
   for (const [key, val] of Object.entries(input_env)) {
     env[key] = val
   }
-  try {
-    for (const cmd of cmds) {
-      await exec(cmd, env);
-    };
-    
-  } catch (error) {
-    core.warning(error.message);
-  }
 
+  // Run commands
+  for (const cmd of cmds) {
+    await exec(cmd, env);
+  };
+    
+  // Return environment
   let resEnv = {};
   for (const key in env) resEnv[key] = env[key];
   return resEnv
 }
 
 async function run(): Promise<void> {
-  const inputs: Inputs = {
-      cmds: JSON.parse(core.getInput("cmds")),
-      cmdsPost: JSON.parse(core.getInput("cmdsPost")),
-      env: JSON.parse(core.getInput("env")),
-  }
-  core.info(`Inputs: ${inspect(inputs)}`);
+  try {
+    const inputs: Inputs = {
+        cmds: JSON.parse(core.getInput("cmds")),
+        cmdsPost: JSON.parse(core.getInput("cmdsPost")),
+        env: JSON.parse(core.getInput("env")),
+    }
+    core.info(`Inputs: ${inspect(inputs)}`);
 
-  if (inputs.cmdsPost) {
-    coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
-  }
+    if (inputs.cmdsPost) {
+      coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
+    }
 
-  const resEnv = await runCmds(inputs.cmds as string[], inputs.env);
-  if (inputs.cmdsPost) {
-    coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
+    const resEnv = await runCmds(inputs.cmds as string[], inputs.env);
+    if (inputs.cmdsPost) {
+      coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
+    }
+  } catch (error) {
+    core.warning(error.message);
   }
 }
 
 async function post(): Promise<void> {
-  const env = JSON.parse(process.env["STATE_envPost"] as string);
-  await runCmds(JSON.parse(process.env["STATE_cmdsPost"] as string), env)
+  try {
+    const env = JSON.parse(process.env["STATE_envPost"] as string);
+    await runCmds(JSON.parse(process.env["STATE_cmdsPost"] as string), env)
+  } catch (error) {
+    core.warning(error.message);
+  }
 }
 
 // Main

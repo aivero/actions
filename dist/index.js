@@ -227,19 +227,17 @@ function exec(full_cmd, env = process.env) {
 }
 function runCmds(cmds, input_env) {
     return __awaiter(this, void 0, void 0, function* () {
+        // Overwrite environment variables
         let env = process.env;
         for (const [key, val] of Object.entries(input_env)) {
             env[key] = val;
         }
-        try {
-            for (const cmd of cmds) {
-                yield exec(cmd, env);
-            }
-            ;
+        // Run commands
+        for (const cmd of cmds) {
+            yield exec(cmd, env);
         }
-        catch (error) {
-            core.warning(error.message);
-        }
+        ;
+        // Return environment
         let resEnv = {};
         for (const key in env)
             resEnv[key] = env[key];
@@ -248,25 +246,35 @@ function runCmds(cmds, input_env) {
 }
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        const inputs = {
-            cmds: JSON.parse(core.getInput("cmds")),
-            cmdsPost: JSON.parse(core.getInput("cmdsPost")),
-            env: JSON.parse(core.getInput("env")),
-        };
-        core.info(`Inputs: ${util_1.inspect(inputs)}`);
-        if (inputs.cmdsPost) {
-            coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
+        try {
+            const inputs = {
+                cmds: JSON.parse(core.getInput("cmds")),
+                cmdsPost: JSON.parse(core.getInput("cmdsPost")),
+                env: JSON.parse(core.getInput("env")),
+            };
+            core.info(`Inputs: ${util_1.inspect(inputs)}`);
+            if (inputs.cmdsPost) {
+                coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
+            }
+            const resEnv = yield runCmds(inputs.cmds, inputs.env);
+            if (inputs.cmdsPost) {
+                coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
+            }
         }
-        const resEnv = yield runCmds(inputs.cmds, inputs.env);
-        if (inputs.cmdsPost) {
-            coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
+        catch (error) {
+            core.warning(error.message);
         }
     });
 }
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
-        const env = JSON.parse(process.env["STATE_envPost"]);
-        yield runCmds(JSON.parse(process.env["STATE_cmdsPost"]), env);
+        try {
+            const env = JSON.parse(process.env["STATE_envPost"]);
+            yield runCmds(JSON.parse(process.env["STATE_cmdsPost"]), env);
+        }
+        catch (error) {
+            core.warning(error.message);
+        }
     });
 }
 // Main
