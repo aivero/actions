@@ -180,14 +180,14 @@ function exec(full_cmd, env = process.env) {
             return env[env_var] || "undefined";
         });
         // Handle assignment 
-        let match = full_cmd.match(/([a-zA-Z0-9_]*)=(.*)/);
+        let match = full_cmd.match(/^([a-zA-Z0-9_]*)=(.*)/);
         if (match) {
             env[match[1]] = match[2];
             core.endGroup();
             return;
         }
         // Handle change directory
-        match = full_cmd.match(/cd (.*)/);
+        match = full_cmd.match(/^cd (.*)/);
         if (match) {
             env["CWD"] = match[1];
             core.endGroup();
