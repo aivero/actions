@@ -25,7 +25,7 @@ interface Instance {
   folder: string;
   cmds?: string[];
   cmdsPost?: string[];
-  image?: ImageConfig;
+  image?: string;
   tags?: string[]
 }
 
@@ -33,9 +33,6 @@ interface ConanInstance extends Instance {
   profiles?: string[];
   settings?: {string};
   options?: {string};
-}
-
-interface ImageConfig {
   bootstrap?: boolean;
 }
 
@@ -178,7 +175,7 @@ class Mode {
       }
 
       // Handle bootstrap packages
-      if (int.image && int.image.bootstrap) {
+      if (int.image && int.bootstrap) {
         payload.image += "-bootstrap";
       }
 

@@ -11486,7 +11486,7 @@ class Mode {
                     payload.tags = ["ARM64"];
                 }
                 // Handle bootstrap packages
-                if (int.image && int.image.bootstrap) {
+                if (int.image && int.bootstrap) {
                     payload.image += "-bootstrap";
                 }
                 // Arguments
