@@ -207,7 +207,8 @@ class Mode {
       createVisitor({
         shouldVisitNextChild: () => license == "",
         visitExpr_stmt: (expr) => {
-          if (expr.children?.length == 3 && expr.children[0].text == "license") {
+          // Find and check expressions: "license = <STRING|TUPLE>"
+          if (expr.children?.length == 3 && expr.children[1].text == "=" && expr.children[0].text == "license") {
             license = expr.children[2].text
           }
         }
@@ -448,7 +449,9 @@ async function run(): Promise<void> {
       component: core.getInput("component"),
       arguments: core.getInput("arguments"),
     };
-    core.debug(`Inputs: ${inspect(inputs)}`);
+    core.startGroup("Inputs");
+    core.info(`Inputs: ${inspect(inputs)}`);
+    core.endGroup();
 
     let mode: Mode;
     if (inputs.component) {

@@ -11514,7 +11514,8 @@ class Mode {
                     shouldVisitNextChild: () => license == "",
                     visitExpr_stmt: (expr) => {
                         var _a;
-                        if (((_a = expr.children) === null || _a === void 0 ? void 0 : _a.length) == 3 && expr.children[0].text == "license") {
+                        // Find and check expressions: "license = <STRING|TUPLE>"
+                        if (((_a = expr.children) === null || _a === void 0 ? void 0 : _a.length) == 3 && expr.children[1].text == "=" && expr.children[0].text == "license") {
                             license = expr.children[2].text;
                         }
                     }
@@ -11745,7 +11746,9 @@ function run() {
                 component: core.getInput("component"),
                 arguments: core.getInput("arguments"),
             };
-            core.debug(`Inputs: ${util_1.inspect(inputs)}`);
+            core.startGroup("Inputs");
+            core.info(`Inputs: ${util_1.inspect(inputs)}`);
+            core.endGroup();
             let mode;
             if (inputs.component) {
                 mode = new ManualMode(inputs);
