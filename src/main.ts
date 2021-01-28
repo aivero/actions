@@ -91,7 +91,9 @@ async function run(): Promise<void> {
         cmdsPost: JSON.parse(core.getInput("cmdsPost")),
         env: JSON.parse(core.getInput("env")),
     }
+    core.startGroup(`Inputs`);
     core.info(`Inputs: ${inspect(inputs)}`);
+    core.endGroup()
 
     if (inputs.cmdsPost) {
       coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));

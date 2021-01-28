@@ -252,7 +252,9 @@ function run() {
                 cmdsPost: JSON.parse(core.getInput("cmdsPost")),
                 env: JSON.parse(core.getInput("env")),
             };
+            core.startGroup(`Inputs`);
             core.info(`Inputs: ${util_1.inspect(inputs)}`);
+            core.endGroup();
             if (inputs.cmdsPost) {
                 coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
             }
