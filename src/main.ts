@@ -103,6 +103,7 @@ async function run(): Promise<void> {
     }
   } catch (error) {
     core.warning(error.message);
+    core.setFailed(error.message);
   }
 }
 
@@ -111,7 +112,8 @@ async function post(): Promise<void> {
     const env = JSON.parse(process.env["STATE_envPost"] as string);
     await runCmds(JSON.parse(process.env["STATE_cmdsPost"] as string), env)
   } catch (error) {
-    core.warning(error.message);
+    core.warning(error);
+    core.setFailed(error.message);
   }
 }
 
