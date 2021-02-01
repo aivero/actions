@@ -11404,14 +11404,21 @@ class Mode {
                 if (int == null) {
                     int = {};
                 }
+                // Set git branch and commit
+                if (int.branch == undefined) {
+                    int.branch = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
+                }
+                if (int.commit == undefined) {
+                    int.commit = process.env.GITHUB_SHA;
+                }
                 // Name
                 if (int.name == undefined) {
                     int.name = name;
                 }
                 // Version
                 if (int.version == undefined) {
-                    // Set version to branch name
-                    int.version = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
+                    // Set version to commit
+                    int.version = int.commit;
                 }
                 // Default folder
                 if (int.folder) {
@@ -11419,9 +11426,6 @@ class Mode {
                 }
                 else {
                     int.folder = folder;
-                }
-                if (int.image == undefined) {
-                    int.image = { boostrap: false };
                 }
                 ints.push(int);
             }
@@ -11435,20 +11439,15 @@ class Mode {
         });
     }
     getBasePayload(int) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            // Find branch and commit
-            const branch = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
-            const commit = int.commit ? int.commit
-                : process.env.GITHUB_SHA;
-            // Create payload
             return {
-                branch,
-                commit,
+                branch: int.branch,
+                commit: int.commit,
             };
         });
     }
     getConanPayload(int) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             let payloads = {};
             // Default profiles
@@ -11459,6 +11458,7 @@ class Mode {
             if (int.profiles == undefined) {
                 int.profiles = profiles;
             }
+            // Create instance for each profile
             for (const profile of int.profiles) {
                 let payload = yield this.getBasePayload(int);
                 // Base Conan image
@@ -11489,7 +11489,7 @@ class Mode {
                 if (int.image && int.bootstrap) {
                     payload.image += "-bootstrap";
                 }
-                // Arguments
+                // Settings
                 let args = this.args;
                 if (int.settings) {
                     for (const [set, val] of Object.entries(int.settings)) {
@@ -11528,7 +11528,7 @@ class Mode {
                     conanRepo = "$CONAN_REPO_INTERNAL";
                 }
                 const cmds = int.cmds || [];
-                payload.cmds = JSON.stringify(cmds.concat([
+                cmds.concat([
                     `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
@@ -11538,7 +11538,12 @@ class Mode {
                     `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                     `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
-                ]));
+                ]);
+                // Create branch alias for sha commit versions
+                if ((_a = int.version) === null || _a === void 0 ? void 0 : _a.match("^[0-9a-f]{40}$")) {
+                    cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
+                }
+                payload.cmds = JSON.stringify(cmds);
                 const cmdsPost = int.cmdsPost || [];
                 payload.cmdsPost = JSON.stringify(cmdsPost.concat([
                     `conan remove --locks`,
