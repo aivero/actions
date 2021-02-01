@@ -14,13 +14,14 @@ const CONFIG_NAME = "devops.yml";
 interface Inputs {
     token: string;
     repository: string;
+    mode: string;
     component: string;
     arguments: string;
 }
 
 interface Instance {
     name: string;
-    version?: string;
+    version: string;
     commit?: string;
     branch?: string;
     folder: string;
@@ -31,7 +32,7 @@ interface Instance {
 }
 
 interface ConanInstance extends Instance {
-    profiles?: string[];
+    profiles: string[];
     settings?: { string };
     options?: { string };
     bootstrap?: boolean;
@@ -71,6 +72,11 @@ class Mode {
         this.token = inputs.token;
         this.git = simpleGit();
 
+    }
+
+    async run() {
+        const ints = await this.findInstances();
+        await this.dispatchInstances(ints);
     }
 
     async loadConfigFile(confPath: string): Promise<{}[]> {
@@ -136,6 +142,29 @@ class Mode {
         }
     }
 
+    async getConanRepo(int: ConanInstance): Promise<string> {
+        const conanfilePath = fs.readFileSync(path.join(int.folder, "conanfile.py"), "utf8");
+        const conanfileAst = parse(conanfilePath);
+        let license: string = "";
+        createVisitor({
+            shouldVisitNextChild: () => license == "",
+            visitExpr_stmt: (expr) => {
+                // Find and check expressions: "license = <STRING|TUPLE>"
+                if (expr.children?.length == 3 && expr.children[1].text == "=" && expr.children[0].text == "license") {
+                    license = expr.children[2].text
+                }
+            }
+        }).visit(conanfileAst);
+        if (license == "") {
+            throw Error(`No license in '${conanfilePath}'`);
+        }
+        let conanRepo = "$CONAN_REPO_PUBLIC";
+        if (license.includes("Proprietary")) {
+            conanRepo = "$CONAN_REPO_INTERNAL";
+        }
+        return conanRepo
+    }
+
     async getConanPayload(int: ConanInstance): Promise<{ [name: string]: Payload }> {
         let payloads: { [name: string]: Payload } = {};
 
@@ -199,25 +228,7 @@ class Mode {
             }
 
             // Check if package is proprietary
-            const conanfilePath = fs.readFileSync(path.join(int.folder, "conanfile.py"), "utf8");
-            const conanfileAst = parse(conanfilePath);
-            let license: string = "";
-            createVisitor({
-                shouldVisitNextChild: () => license == "",
-                visitExpr_stmt: (expr) => {
-                    // Find and check expressions: "license = <STRING|TUPLE>"
-                    if (expr.children?.length == 3 && expr.children[1].text == "=" && expr.children[0].text == "license") {
-                        license = expr.children[2].text
-                    }
-                }
-            }).visit(conanfileAst);
-            if (license == "") {
-                throw Error(`No license in '${conanfilePath}'`);
-            }
-            let conanRepo = "$CONAN_REPO_PUBLIC";
-            if (license.includes("Proprietary")) {
-                conanRepo = "$CONAN_REPO_INTERNAL";
-            }
+            const conanRepo = await this.getConanRepo(int)
 
             const cmds = int.cmds || [];
             cmds.concat([
@@ -257,7 +268,7 @@ class Mode {
 
         let payloads: { [name: string]: Payload } = {};
         for (const int of ints) {
-            const mode = this.get_mode(int as Instance);
+            const mode = this.getMode(int as Instance);
             switch (mode) {
                 case SelectMode.Conan:
                     payloads = await this.getConanPayload(int as ConanInstance);
@@ -280,7 +291,7 @@ class Mode {
         core.endGroup();
     }
 
-    get_mode(int: Instance): SelectMode {
+    getMode(int: Instance): SelectMode {
         if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
             return SelectMode.Docker;
         } else if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
@@ -443,12 +454,79 @@ class ManualMode extends Mode {
     }
 }
 
+class AliasMode extends Mode {
+    constructor(inputs: Inputs) {
+        super(inputs);
+    }
+
+    async findInstances(): Promise<{}[]> {
+        core.startGroup("Manual Mode: Create instances from manual input");
+        let ints: {}[] = [];
+
+        const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
+
+        for (const confPath of confPaths) {
+            const confInts = await this.loadConfigFile(confPath);
+            for (const int of confInts) {
+                const { name, version } = int as Instance;
+                // Only create alias for component with commit sha as version
+                if (!version?.match("^[0-9a-f]{40}$")) {
+                    continue
+                }
+                const intHash = hash(ints);
+                core.info(
+                    `Alias component/version (hash): ${name}/${version} (${intHash})`,
+                );
+                ints.push(int);
+            };
+        };
+        core.endGroup()
+        return ints;
+    }
+
+    async dispatchInstances(ints: {}[]) {
+        core.startGroup("Dispatch instances");
+
+        const [owner, repo] = this.repo.split("/");
+        const octokit = github.getOctokit(this.token);
+
+        let cmds = [
+            `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
+            `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
+            `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
+            `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
+        ];
+        for (const int of ints) {
+            const { name, version, branch } = int as ConanInstance;
+            const conanRepo = await this.getConanRepo(int as ConanInstance)
+            // Create branch alias for sha commit versions
+            if (version.match("^[0-9a-f]{40}$")) {
+                cmds.push(`conan alias ${name}/${version} ${name}/${branch}`)
+                cmds.push(`conan upload ${name}/${branch}@ --all -c -r ${conanRepo}`)
+            }
+        }
+        let client_payload: Payload = {
+            cmds: JSON.stringify(cmds)
+        };
+        const event: Event = {
+            owner,
+            repo,
+            event_type: "Create branch alias for all Conan packages",
+            client_payload
+        };
+        core.info(`${inspect(event.client_payload)}`);
+        await octokit.repos.createDispatchEvent(event);
+        core.endGroup();
+    }
+}
+
 async function run(): Promise<void> {
     try {
         // Handle inputs
         const inputs: Inputs = {
             token: core.getInput("token"),
             repository: core.getInput("repository"),
+            mode: core.getInput("mode"),
             component: core.getInput("component"),
             arguments: core.getInput("arguments"),
         };
@@ -457,14 +535,16 @@ async function run(): Promise<void> {
         core.endGroup();
 
         let mode: Mode;
-        if (inputs.component) {
+        if (inputs.mode == "manual") {
             mode = new ManualMode(inputs);
-        } else {
+        } else if (inputs.mode == "git") {
             mode = new GitMode(inputs);
+        } else if (inputs.mode == "alias") {
+            mode = new AliasMode(inputs);
+        } else {
+            throw Error(`Unsupported mode: ${inputs.mode}`)
         }
-        const ints = await mode.findInstances();
-
-        await mode.dispatchInstances(ints);
+        await mode.run();
 
     } catch (error) {
         core.debug(inspect(error));
