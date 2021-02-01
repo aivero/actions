@@ -23,7 +23,7 @@ interface Instance {
     name: string;
     version: string;
     commit?: string;
-    branch?: string;
+    branch: string;
     folder: string;
     cmds?: string[];
     cmdsPost?: string[];
@@ -242,9 +242,11 @@ class Mode {
                 `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                 `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
             ]);
-            // Create branch alias for sha commit versions
+            // Create branch alias for sha commit version
+            let version = int.version
             if (int.version?.match("^[0-9a-f]{40}$")) {
                 cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`)
+                version = int.branch
             }
             payload.cmds = JSON.stringify(cmds)
 
@@ -254,7 +256,7 @@ class Mode {
                 `conan remove * -f`,
             ]));
 
-            const eventName = `${int.name}/${int.version}: ${profile}`;
+            const eventName = `${int.name}/${version}: ${profile}`;
             payloads[eventName] = payload;
         }
         return payloads;

@@ -11551,9 +11551,11 @@ class Mode {
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                     `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
                 ]);
-                // Create branch alias for sha commit versions
+                // Create branch alias for sha commit version
+                let version = int.version;
                 if ((_a = int.version) === null || _a === void 0 ? void 0 : _a.match("^[0-9a-f]{40}$")) {
                     cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
+                    version = int.branch;
                 }
                 payload.cmds = JSON.stringify(cmds);
                 const cmdsPost = int.cmdsPost || [];
@@ -11561,7 +11563,7 @@ class Mode {
                     `conan remove --locks`,
                     `conan remove * -f`,
                 ]));
-                const eventName = `${int.name}/${int.version}: ${profile}`;
+                const eventName = `${int.name}/${version}: ${profile}`;
                 payloads[eventName] = payload;
             }
             return payloads;
