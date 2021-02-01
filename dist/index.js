@@ -11807,6 +11807,7 @@ class AliasMode extends Mode {
             }
             let client_payload = {
                 image: "aivero/conan:bionic-x86_64",
+                tags: ["X64"],
                 cmds: JSON.stringify(cmds)
             };
             const event = {
