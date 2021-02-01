@@ -543,10 +543,10 @@ async function run(): Promise<void> {
         core.endGroup();
 
         let mode: Mode;
-        if (inputs.mode == "manual") {
-            mode = new ManualMode(inputs);
-        } else if (inputs.mode == "git") {
+        if (inputs.mode == "" || inputs.mode == "git") {
             mode = new GitMode(inputs);
+        } else if (inputs.mode == "manual") {
+            mode = new ManualMode(inputs);
         } else if (inputs.mode == "alias") {
             mode = new AliasMode(inputs);
         } else {
