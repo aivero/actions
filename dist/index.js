@@ -245,6 +245,7 @@ function runCmds(cmds, input_env) {
     });
 }
 function run() {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const inputs = {
@@ -255,11 +256,11 @@ function run() {
             core.startGroup(`Inputs`);
             core.info(`Inputs: ${util_1.inspect(inputs)}`);
             core.endGroup();
-            if (inputs.cmdsPost) {
+            if ((_a = inputs.cmdsPost) === null || _a === void 0 ? void 0 : _a.length) {
                 coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
             }
             const resEnv = yield runCmds(inputs.cmds, inputs.env);
-            if (inputs.cmdsPost) {
+            if ((_b = inputs.cmdsPost) === null || _b === void 0 ? void 0 : _b.length) {
                 coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
             }
         }

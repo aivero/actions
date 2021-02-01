@@ -3,8 +3,10 @@ description: 'Run Github tasks'
 inputs:
   cmds:
     description: 'Commands to run'
+    default: '[]'
   cmdsPost:
     description: 'Post commands to run'
+    default: '[]'
   env:
     description: 'Environment variables set for commands'
     default: '{}'
