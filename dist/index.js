@@ -11539,8 +11539,8 @@ class Mode {
                 }
                 // Check if package is proprietary
                 const conanRepo = yield this.getConanRepo(int);
-                const cmds = int.cmds || [];
-                cmds.concat([
+                let cmds = int.cmds || [];
+                cmds = cmds.concat([
                     `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
