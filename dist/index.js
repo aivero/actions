@@ -11371,9 +11371,9 @@ const python_ast_1 = __webpack_require__(8);
 const CONFIG_NAME = "devops.yml";
 var SelectMode;
 (function (SelectMode) {
-    SelectMode["Conan"] = "Conan";
-    SelectMode["Docker"] = "Docker";
-    SelectMode["Command"] = "Command";
+    SelectMode["Conan"] = "conan";
+    SelectMode["Docker"] = "docker";
+    SelectMode["Command"] = "command";
 })(SelectMode || (SelectMode = {}));
 class Mode {
     constructor(inputs) {
@@ -11433,6 +11433,8 @@ class Mode {
                 else {
                     int.folder = folder;
                 }
+                // Load mode
+                int.mode = this.getMode(int);
                 ints.push(int);
             }
             ;
@@ -11761,7 +11763,7 @@ class AliasMode extends Mode {
     }
     findInstances() {
         return __awaiter(this, void 0, void 0, function* () {
-            core.startGroup("Manual Mode: Create instances from manual input");
+            core.startGroup("Alias Mode: Create alias for all package");
             let ints = [];
             const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
             for (const confPath of confPaths) {
@@ -11804,6 +11806,7 @@ class AliasMode extends Mode {
                 }
             }
             let client_payload = {
+                image: "aivero/conan:bionic-x86_64",
                 cmds: JSON.stringify(cmds)
             };
             const event = {

@@ -28,7 +28,8 @@ interface Instance {
     cmds?: string[];
     cmdsPost?: string[];
     image?: string;
-    tags?: string[]
+    tags?: string[];
+    mode: SelectMode;
 }
 
 interface ConanInstance extends Instance {
@@ -39,9 +40,9 @@ interface ConanInstance extends Instance {
 }
 
 enum SelectMode {
-    Conan = "Conan",
-    Docker = "Docker",
-    Command = "Command",
+    Conan = "conan",
+    Docker = "docker",
+    Command = "command",
 }
 
 interface Payload {
@@ -124,6 +125,9 @@ class Mode {
             } else {
                 int.folder = folder;
             }
+
+            // Load mode
+            int.mode = this.getMode(int)
 
             ints.push(int);
         };
@@ -462,7 +466,7 @@ class AliasMode extends Mode {
     }
 
     async findInstances(): Promise<{}[]> {
-        core.startGroup("Manual Mode: Create instances from manual input");
+        core.startGroup("Alias Mode: Create alias for all package");
         let ints: {}[] = [];
 
         const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
@@ -508,6 +512,7 @@ class AliasMode extends Mode {
             }
         }
         let client_payload: Payload = {
+            image: "aivero/conan:bionic-x86_64",
             cmds: JSON.stringify(cmds)
         };
         const event: Event = {
