@@ -11449,6 +11449,7 @@ class Mode {
     getBasePayload(int) {
         return __awaiter(this, void 0, void 0, function* () {
             return {
+                image: "node12",
                 branch: int.branch,
                 commit: int.commit,
             };
@@ -11477,6 +11478,14 @@ class Mode {
                 conanRepo = "$CONAN_REPO_INTERNAL";
             }
             return conanRepo;
+        });
+    }
+    getCommandPayload(int) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let payloads = {};
+            const eventName = `${int.name}/${int.version}`;
+            payloads[eventName] = yield this.getBasePayload(int);
+            return payloads;
         });
     }
     getConanPayload(int) {
@@ -11582,6 +11591,9 @@ class Mode {
                 switch (mode) {
                     case SelectMode.Conan:
                         payloads = yield this.getConanPayload(int);
+                        break;
+                    case SelectMode.Command:
+                        payloads = yield this.getCommandPayload(int);
                         break;
                     default:
                         throw Error(`Mode '${mode}' is not supported yet.`);
