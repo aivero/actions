@@ -265,7 +265,7 @@ function run() {
             }
         }
         catch (error) {
-            core.setFailed(error.message);
+            core.setFailed(error);
         }
     });
 }
@@ -276,7 +276,7 @@ function post() {
             yield runCmds(JSON.parse(process.env["STATE_cmdsPost"]), env);
         }
         catch (error) {
-            core.setFailed(error.message);
+            core.setFailed(error);
         }
     });
 }
