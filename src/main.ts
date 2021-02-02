@@ -104,7 +104,8 @@ async function run(): Promise<void> {
       coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
     }
   } catch (error) {
-    core.setFailed(error);
+    core.debug(inspect(error));
+    core.setFailed(error.message);
   }
 }
 
@@ -113,7 +114,8 @@ async function post(): Promise<void> {
     const env = JSON.parse(process.env["STATE_envPost"] as string);
     await runCmds(JSON.parse(process.env["STATE_cmdsPost"] as string), env)
   } catch (error) {
-    core.setFailed(error);
+    core.debug(inspect(error));
+    core.setFailed(error.message);
   }
 }
 
