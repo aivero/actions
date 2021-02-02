@@ -209,7 +209,7 @@ class Mode {
             }
 
             // Handle bootstrap packages
-            if (int.image && int.bootstrap) {
+            if (int.bootstrap) {
                 payload.image += "-bootstrap";
             }
 
