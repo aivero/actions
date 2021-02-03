@@ -1,0 +1,19 @@
+name: 'Github Runner action'
+description: 'Run Github tasks'
+inputs:
+  cmds:
+    description: 'Commands to run'
+    default: '[]'
+  cmdsPost:
+    description: 'Post commands to run'
+    default: '[]'
+  env:
+    description: 'Environment variables set for commands'
+    default: '{}'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+  post: dist/index.js
+branding:
+  icon: 'target'
+  color: 'gray-dark'
