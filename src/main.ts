@@ -85,8 +85,10 @@ async function runCmds(cmds: string[], input_env: { key: string }): Promise<{}> 
 }
 
 async function run(): Promise<void> {
+  let resEnv = {}
+  let inputs
   try {
-    const inputs: Inputs = {
+    inputs = {
       cmds: JSON.parse(core.getInput("cmds")),
       cmdsPost: JSON.parse(core.getInput("cmdsPost")),
       env: JSON.parse(core.getInput("env")),
@@ -99,13 +101,13 @@ async function run(): Promise<void> {
       coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
     }
 
-    const resEnv = await runCmds(inputs.cmds as string[], inputs.env);
-    if (inputs.cmdsPost?.length) {
-      coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
-    }
+    resEnv = await runCmds(inputs.cmds as string[], inputs.env);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
+  }
+  if (inputs?.cmdsPost?.length) {
+    coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
   }
 }
 
