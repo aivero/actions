@@ -113,7 +113,7 @@ async function run(): Promise<void> {
 
 async function post(): Promise<void> {
   try {
-    const env = JSON.parse(process.env["STATE_envPost"] as string);
+    const env = JSON.parse(process.env["STATE_envPost"] || "{}");
     await runCmds(JSON.parse(process.env["STATE_cmdsPost"] as string), env)
   } catch (error) {
     core.debug(inspect(error));

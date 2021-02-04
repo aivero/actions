@@ -275,7 +275,7 @@ function run() {
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const env = JSON.parse(process.env["STATE_envPost"]);
+            const env = JSON.parse(process.env["STATE_envPost"] || "{}");
             yield runCmds(JSON.parse(process.env["STATE_cmdsPost"]), env);
         }
         catch (error) {
