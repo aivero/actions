@@ -247,8 +247,10 @@ function runCmds(cmds, input_env) {
 function run() {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        let resEnv = {};
+        let inputs;
         try {
-            const inputs = {
+            inputs = {
                 cmds: JSON.parse(core.getInput("cmds")),
                 cmdsPost: JSON.parse(core.getInput("cmdsPost")),
                 env: JSON.parse(core.getInput("env")),
@@ -259,21 +261,21 @@ function run() {
             if ((_a = inputs.cmdsPost) === null || _a === void 0 ? void 0 : _a.length) {
                 coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
             }
-            const resEnv = yield runCmds(inputs.cmds, inputs.env);
-            if ((_b = inputs.cmdsPost) === null || _b === void 0 ? void 0 : _b.length) {
-                coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
-            }
+            resEnv = yield runCmds(inputs.cmds, inputs.env);
         }
         catch (error) {
             core.debug(util_1.inspect(error));
             core.setFailed(error.message);
+        }
+        if ((_b = inputs === null || inputs === void 0 ? void 0 : inputs.cmdsPost) === null || _b === void 0 ? void 0 : _b.length) {
+            coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
         }
     });
 }
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const env = JSON.parse(process.env["STATE_envPost"]);
+            const env = JSON.parse(process.env["STATE_envPost"] || "{}");
             yield runCmds(JSON.parse(process.env["STATE_cmdsPost"]), env);
         }
         catch (error) {
