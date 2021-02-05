@@ -309,10 +309,10 @@ class Mode {
   }
 
   getMode(int: Instance): SelectMode {
-    if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
-      return SelectMode.Docker;
-    } else if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
+    if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
       return SelectMode.Conan;
+    } else if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
+      return SelectMode.Docker;
     } else if (int.cmds) {
       return SelectMode.Command;
     }
