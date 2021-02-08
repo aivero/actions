@@ -8,7 +8,7 @@ async function run(): Promise<void> {
     repository: core.getInput("repository"),
     commit: core.getInput("commit"),
     component: core.getInput("component"),
-    state: core.getInput("state"),
+    status: core.getInput("state"),
   }
   core.startGroup(`Inputs`);
   core.info(`Inputs: ${inspect(inputs)}`);
@@ -17,8 +17,12 @@ async function run(): Promise<void> {
   const [owner, repo] = inputs.repository.split("/");
   const sha = inputs.commit;
   const context = inputs.component;
-  const state = inputs.state as "error" | "success" | "failure" | "pending";
-  const status = {
+  const status = inputs.status as "error" | "success" | "cancelled";
+  let state = "failure" as "failure" | "success";
+  if (status == "success") {
+    state = "success";
+  };
+  const statusEvent = {
     owner,
     repo,
     sha,
@@ -26,7 +30,7 @@ async function run(): Promise<void> {
     context,
   }
   const octokit = github.getOctokit(inputs.token);
-  await octokit.repos.createCommitStatus(status);
+  await octokit.repos.createCommitStatus(statusEvent);
 }
 
 run();

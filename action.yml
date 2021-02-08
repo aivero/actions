@@ -11,8 +11,8 @@ inputs:
     description: 'Status component'
   commit:
     description: 'Status commit'
-  state:
-    description: '"error" | "success" | "failure" | "pending"'
+  status:
+    description: '"error" | "success" | "cancelled"'
 runs:
   using: 'node12'
   main: 'dist/index.js'

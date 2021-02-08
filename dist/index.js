@@ -1236,7 +1236,7 @@ function run() {
             repository: core.getInput("repository"),
             commit: core.getInput("commit"),
             component: core.getInput("component"),
-            state: core.getInput("state"),
+            status: core.getInput("state"),
         };
         core.startGroup(`Inputs`);
         core.info(`Inputs: ${util_1.inspect(inputs)}`);
@@ -1244,8 +1244,13 @@ function run() {
         const [owner, repo] = inputs.repository.split("/");
         const sha = inputs.commit;
         const context = inputs.component;
-        const state = inputs.state;
-        const status = {
+        const status = inputs.status;
+        let state = "failure";
+        if (status == "success") {
+            state = "success";
+        }
+        ;
+        const statusEvent = {
             owner,
             repo,
             sha,
@@ -1253,7 +1258,7 @@ function run() {
             context,
         };
         const octokit = github.getOctokit(inputs.token);
-        yield octokit.repos.createCommitStatus(status);
+        yield octokit.repos.createCommitStatus(statusEvent);
     });
 }
 run();
