@@ -1236,7 +1236,7 @@ function run() {
             repository: core.getInput("repository"),
             commit: core.getInput("commit"),
             component: core.getInput("component"),
-            status: core.getInput("state"),
+            status: core.getInput("status"),
         };
         core.startGroup(`Inputs`);
         core.info(`Inputs: ${util_1.inspect(inputs)}`);

@@ -8,7 +8,7 @@ async function run(): Promise<void> {
     repository: core.getInput("repository"),
     commit: core.getInput("commit"),
     component: core.getInput("component"),
-    status: core.getInput("state"),
+    status: core.getInput("status"),
   }
   core.startGroup(`Inputs`);
   core.info(`Inputs: ${inspect(inputs)}`);
