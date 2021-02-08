@@ -22,7 +22,7 @@ interface Inputs {
 interface Instance {
   name: string;
   version: string;
-  commit?: string;
+  commit: string;
   branch: string;
   folder: string;
   cmds?: string[];
@@ -49,7 +49,8 @@ interface Payload {
   tags?: string[];
   image?: string;
   branch?: string;
-  commit?: string;
+  commit: string;
+  component: string;
   cmds?: string;
   cmdsPost?: string;
 }
@@ -142,6 +143,7 @@ class Mode {
   async getBasePayload(int: Instance): Promise<Payload> {
     return {
       image: "node12",
+      component: `${int.name}/${int.version}`,
       branch: int.branch,
       commit: int.commit,
     }
@@ -294,6 +296,7 @@ class Mode {
           throw Error(`Mode '${mode}' is not supported yet.`);
       }
 
+      const { name, version } = int as Instance;
       for (const [event_type, client_payload] of Object.entries(payloads)) {
         const event: Event = {
           owner,
@@ -303,6 +306,14 @@ class Mode {
         };
         core.info(`${inspect(event.client_payload)}`);
         await octokit.repos.createDispatchEvent(event);
+        const status = {
+          owner,
+          repo,
+          sha: client_payload.commit,
+          state: "pending" as "pending",
+          context: `${name}/${version}`,
+        }
+        await octokit.repos.createCommitStatus(status);
       }
     }
     core.endGroup();
@@ -350,7 +361,7 @@ class GitMode extends Mode {
       let filePath = d.file;
       // Handle file renaming
       if (filePath.includes(" => ")) {
-        core.info(`Renamed: ${filePath}`);
+        core.info(`Renamed: ${filePath} `);
         filePath = filePath.replace(/{(.*) => .*}/, "$1");
       }
 
@@ -525,7 +536,9 @@ class AliasMode extends Mode {
     let client_payload: Payload = {
       image: "aivero/conan:bionic-x86_64",
       tags: ["X64"],
-      cmds: JSON.stringify(cmds)
+      cmds: JSON.stringify(cmds),
+      commit: "",
+      component: "*/*",
     };
     const event: Event = {
       owner,
