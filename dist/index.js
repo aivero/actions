@@ -11450,7 +11450,7 @@ class Mode {
         return __awaiter(this, void 0, void 0, function* () {
             return {
                 image: "node12",
-                component: `${int.name}/${int.version}`,
+                context: `${int.name}/${int.version}`,
                 branch: int.branch,
                 commit: int.commit,
             };
@@ -11576,6 +11576,7 @@ class Mode {
                     `conan remove * -f`,
                 ]));
                 const eventName = `${int.name}/${version}: ${profile}`;
+                payload.context = `${eventName} (${object_hash_1.default(payload)})`;
                 payloads[eventName] = payload;
             }
             return payloads;
@@ -11614,7 +11615,7 @@ class Mode {
                         repo,
                         sha: client_payload.commit,
                         state: "pending",
-                        context: `${name}/${version}`,
+                        context: client_payload.context,
                     };
                     yield octokit.repos.createCommitStatus(status);
                 }
@@ -11832,7 +11833,7 @@ class AliasMode extends Mode {
                 tags: ["X64"],
                 cmds: JSON.stringify(cmds),
                 commit: "",
-                component: "*/*",
+                context: "Alias: */*",
             };
             const event = {
                 owner,

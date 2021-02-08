@@ -50,7 +50,7 @@ interface Payload {
   image?: string;
   branch?: string;
   commit: string;
-  component: string;
+  context: string;
   cmds?: string;
   cmdsPost?: string;
 }
@@ -143,7 +143,7 @@ class Mode {
   async getBasePayload(int: Instance): Promise<Payload> {
     return {
       image: "node12",
-      component: `${int.name}/${int.version}`,
+      context: `${int.name}/${int.version}`,
       branch: int.branch,
       commit: int.commit,
     }
@@ -271,6 +271,7 @@ class Mode {
       ]));
 
       const eventName = `${int.name}/${version}: ${profile}`;
+      payload.context = `${eventName} (${hash(payload)})`
       payloads[eventName] = payload;
     }
     return payloads;
@@ -311,7 +312,7 @@ class Mode {
           repo,
           sha: client_payload.commit,
           state: "pending" as "pending",
-          context: `${name}/${version}`,
+          context: client_payload.context,
         }
         await octokit.repos.createCommitStatus(status);
       }
@@ -538,7 +539,7 @@ class AliasMode extends Mode {
       tags: ["X64"],
       cmds: JSON.stringify(cmds),
       commit: "",
-      component: "*/*",
+      context: "Alias: */*",
     };
     const event: Event = {
       owner,
