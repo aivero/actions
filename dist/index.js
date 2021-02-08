@@ -1235,7 +1235,7 @@ function run() {
             token: core.getInput("token"),
             repository: core.getInput("repository"),
             commit: core.getInput("commit"),
-            component: core.getInput("component"),
+            context: core.getInput("context"),
             status: core.getInput("status"),
         };
         core.startGroup(`Inputs`);
@@ -1243,7 +1243,7 @@ function run() {
         core.endGroup();
         const [owner, repo] = inputs.repository.split("/");
         const sha = inputs.commit;
-        const context = inputs.component;
+        const context = inputs.context;
         const status = inputs.status;
         let state = "failure";
         if (status == "success") {
