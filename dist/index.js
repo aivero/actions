@@ -11278,7 +11278,6 @@ class Mode {
                 branch: int.branch,
                 commit: int.commit,
                 component: int.name,
-                folder: int.folder,
                 version: int.version,
             };
         });

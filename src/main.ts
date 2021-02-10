@@ -56,7 +56,6 @@ interface Payload {
   cmds?: string;
   cmdsPost?: string;
   component?: string;
-  folder?: string;
   version?: string;
 }
 
@@ -152,7 +151,6 @@ class Mode {
       branch: int.branch,
       commit: int.commit,
       component: int.name,
-      folder: int.folder,
       version: int.version,
     }
   }
