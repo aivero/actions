@@ -11279,6 +11279,7 @@ class Mode {
                 commit: int.commit,
                 component: int.name,
                 version: int.version,
+                cmds: {}
             };
         });
     }
@@ -11330,6 +11331,7 @@ class Mode {
             // Create instance for each profile
             for (const profile of int.profiles) {
                 const payload = yield this.getBasePayload(int);
+                payload.profile = profile;
                 // Base Conan image
                 payload.image = "aivero/conan:";
                 // OS options
@@ -11385,7 +11387,7 @@ class Mode {
                     `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
                     `conan config set general.default_profile=${profile}`,
                 ]);
-                payload.cmdsPre = JSON.stringify(cmdsPre);
+                payload.cmds.pre = JSON.stringify(cmdsPre);
                 let cmds = int.cmds || [];
                 cmds = cmds.concat([
                     `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
@@ -11399,9 +11401,9 @@ class Mode {
                     cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
                     version = int.branch;
                 }
-                payload.cmds = JSON.stringify(cmds);
+                payload.cmds.main = JSON.stringify(cmds);
                 const cmdsPost = int.cmdsPost || [];
-                payload.cmdsPost = JSON.stringify(cmdsPost.concat([
+                payload.cmds.post = JSON.stringify(cmdsPost.concat([
                     `conan remove --locks`,
                     `conan remove * -f`,
                 ]));
@@ -11635,12 +11637,13 @@ class AliasMode extends Mode {
             core.startGroup("Dispatch instances");
             const [owner, repo] = this.repo.split("/");
             const octokit = github.getOctokit(this.token);
-            const cmdsPre = [
+            const cmdsComplete = {};
+            cmdsComplete.pre = JSON.stringify([
                 `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
                 `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
                 `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
                 `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
-            ];
+            ]);
             const cmds = [];
             for (const int of ints) {
                 const { name, version, branch } = int;
@@ -11651,11 +11654,11 @@ class AliasMode extends Mode {
                     cmds.push(`conan upload ${name}/${branch}@ --all -c -r ${conanRepo}`);
                 }
             }
+            cmdsComplete.main = JSON.stringify(cmds);
             const client_payload = {
                 image: "aivero/conan:bionic-x86_64",
                 tags: ["X64"],
-                cmdsPre: JSON.stringify(cmdsPre),
-                cmds: JSON.stringify(cmds),
+                cmds: cmdsComplete,
                 commit: "",
                 context: "Alias: */*",
             };
