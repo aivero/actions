@@ -61,6 +61,7 @@ async function exec(
 }
 
 interface Inputs {
+  cmdsPre?: string[],
   cmds?: string[],
   cmdsPost?: string[],
   env: { key: string };
@@ -89,6 +90,7 @@ async function run(): Promise<void> {
   let inputs
   try {
     inputs = {
+      cmdsPre: JSON.parse(core.getInput("cmdsPre")),
       cmds: JSON.parse(core.getInput("cmds")),
       cmdsPost: JSON.parse(core.getInput("cmdsPost")),
       env: JSON.parse(core.getInput("env")),
@@ -101,6 +103,7 @@ async function run(): Promise<void> {
       coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
     }
 
+    resEnv = await runCmds(inputs.cmdsPre as string[], inputs.env);
     resEnv = await runCmds(inputs.cmds as string[], inputs.env);
   } catch (error) {
     core.debug(inspect(error));
