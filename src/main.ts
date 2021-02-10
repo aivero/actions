@@ -68,7 +68,7 @@ interface Inputs {
   cmdsPre?: string[],
   cmds?: string[],
   cmdsPost?: string[],
-  env: { key: string };
+  env: resultEnv;
 }
 
 async function runCmds(cmds: string[], input_env: { key: string }): Promise<resultEnv> {
