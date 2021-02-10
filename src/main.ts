@@ -25,6 +25,7 @@ interface Instance {
   commit: string;
   branch: string;
   folder: string;
+  cmdsPre?: string[];
   cmds?: string[];
   cmdsPost?: string[];
   image?: string;
@@ -51,6 +52,7 @@ interface Payload {
   branch?: string;
   commit: string;
   context: string;
+  cmdsPre?: string;
   cmds?: string;
   cmdsPost?: string;
 }
@@ -244,13 +246,18 @@ class Mode {
       // Check if package is proprietary
       const conanRepo = await this.getConanRepo(int)
 
-      let cmds = int.cmds || [];
-      cmds = cmds.concat([
+      let cmdsPre = int.cmdsPre || [];
+      cmdsPre = cmdsPre.concat([
         `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
         `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
         `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
         `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
         `conan config set general.default_profile=${profile}`,
+      ]);
+      payload.cmdsPre = JSON.stringify(cmdsPre)
+
+      let cmds = int.cmds || [];
+      cmds = cmds.concat([
         `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
         `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
         `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
@@ -329,6 +336,7 @@ class Mode {
       return SelectMode.Command;
     }
     // TODO: add support for other modes
+    // TODO: Allow specifying a mode manually.
     throw Error(`Could not detect mode for folder: ${int.folder}`);
   }
 }
@@ -519,12 +527,13 @@ class AliasMode extends Mode {
     const [owner, repo] = this.repo.split("/");
     const octokit = github.getOctokit(this.token);
 
-    let cmds = [
+    let cmdsPre = [
       `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
     ];
+    let cmds: string[] = [];
     for (const int of ints) {
       const { name, version, branch } = int as ConanInstance;
       const conanRepo = await this.getConanRepo(int as ConanInstance)
@@ -537,6 +546,7 @@ class AliasMode extends Mode {
     let client_payload: Payload = {
       image: "aivero/conan:bionic-x86_64",
       tags: ["X64"],
+      cmdsPre: JSON.stringify(cmdsPre),
       cmds: JSON.stringify(cmds),
       commit: "",
       context: "Alias: */*",
