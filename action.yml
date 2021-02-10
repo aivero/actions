@@ -1,6 +1,9 @@
 name: 'Github Runner action'
 description: 'Run Github tasks'
 inputs:
+  cmdsPre:
+    description: 'Pre commands to run'
+    default: '[]'
   cmds:
     description: 'Commands to run'
     default: '[]'
