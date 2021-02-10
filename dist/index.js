@@ -140,7 +140,7 @@ function run() {
                 coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
             }
             resEnv = yield runCmds(inputs.cmdsPre, inputs.env);
-            resEnv = yield runCmds(inputs.cmds, inputs.env);
+            resEnv = yield runCmds(inputs.cmds, resEnv);
         }
         catch (error) {
             core.debug(util_1.inspect(error));

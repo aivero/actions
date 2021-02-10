@@ -3,6 +3,10 @@ import { inspect } from "util";
 import { spawn } from "child_process";
 import * as coreCommand from "@actions/core/lib/command";
 
+type resultEnv = {
+  key: string
+}
+
 async function exec(
   full_cmd: string,
   env = process.env,
@@ -67,7 +71,7 @@ interface Inputs {
   env: { key: string };
 }
 
-async function runCmds(cmds: string[], input_env: { key: string }): Promise<{}> {
+async function runCmds(cmds: string[], input_env: { key: string }): Promise<resultEnv> {
   // Overwrite environment variables
   let env = process.env
   for (const [key, val] of Object.entries(input_env)) {
@@ -80,13 +84,13 @@ async function runCmds(cmds: string[], input_env: { key: string }): Promise<{}> 
   };
 
   // Return environment
-  let resEnv = {};
+  let resEnv = {} as resultEnv;
   for (const key in env) resEnv[key] = env[key];
   return resEnv
 }
 
 async function run(): Promise<void> {
-  let resEnv = {}
+  let resEnv = {} as resultEnv;
   let inputs
   try {
     inputs = {
@@ -104,7 +108,7 @@ async function run(): Promise<void> {
     }
 
     resEnv = await runCmds(inputs.cmdsPre as string[], inputs.env);
-    resEnv = await runCmds(inputs.cmds as string[], inputs.env);
+    resEnv = await runCmds(inputs.cmds as string[], resEnv);
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
