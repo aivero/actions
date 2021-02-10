@@ -86,16 +86,16 @@ class Mode {
     await this.dispatchInstances(ints);
   }
 
-  async loadConfigFile(confPath: string): Promise<{}[]> {
+  async loadConfigFile(confPath: string): Promise<unknown[]> {
     const confRaw = fs.readFileSync(confPath, "utf8");
     return this.loadConfig(confPath, confRaw)
   }
 
-  async loadConfig(confPath: string, confRaw: string): Promise<{}[]> {
+  async loadConfig(confPath: string, confRaw: string): Promise<unknown[]> {
     const folder = path.dirname(confPath);
     const name = path.basename(folder);
     const conf = YAML.parse(confRaw);
-    const ints: {}[] = [];
+    const ints: Record<string, unknown>[] = [];
     // Empty conf file
     if (conf == null) {
       return ints;
@@ -141,7 +141,7 @@ class Mode {
     return ints;
   }
 
-  async findInstances(): Promise<{}[]> {
+  async findInstances(): Promise<unknown[]> {
     throw Error("Not implemented!");
   }
 
@@ -290,7 +290,7 @@ class Mode {
     return payloads;
   }
 
-  async dispatchInstances(ints: {}[]) {
+  async dispatchInstances(ints: unknown[]) {
     core.startGroup("Dispatch instances");
 
     const [owner, repo] = this.repo.split("/");
@@ -323,7 +323,7 @@ class Mode {
           owner,
           repo,
           sha: client_payload.commit,
-          state: "pending" as "pending",
+          state: "pending" as const,
           context: client_payload.context,
         }
         await octokit.repos.createCommitStatus(status);
@@ -365,9 +365,9 @@ class GitMode extends Mode {
     return undefined;
   }
 
-  async findInstances(): Promise<{}[]> {
+  async findInstances(): Promise<unknown[]> {
     core.startGroup("Git Mode: Create instances from changed files in git");
-    const ints: {}[] = [];
+    const ints: unknown[] = [];
     const intsHash = new Set<string>();
     // Compare to previous commit
     const diff = await this.git.diffSummary(["HEAD", this.lastRev]);
@@ -392,7 +392,7 @@ class GitMode extends Mode {
         continue;
       }
 
-      let intsNew: {}[];
+      let intsNew: unknown[];
       if (file == CONFIG_NAME) {
         intsNew = await this.handleConfigChange(filePath);
       } else {
@@ -410,7 +410,7 @@ class GitMode extends Mode {
     return ints;
   }
 
-  async handleConfigChange(confPath: string): Promise<{}[]> {
+  async handleConfigChange(confPath: string): Promise<unknown[]> {
     // New config.yml
     const confNew = await this.loadConfig(confPath, await this.git.show([`HEAD:${confPath}`]));
     const filesOld = await this.git.raw(["ls-tree", "-r", this.lastRev]);
@@ -427,7 +427,7 @@ class GitMode extends Mode {
     }
     // Compare to old config.yml
     core.info(`Changed: ${confPath}`);
-    const ints: {}[] = [];
+    const ints: unknown[] = [];
     const confOld = await this.loadConfig(confPath, await this.git.show([`${this.lastRev}:${confPath}`]));
     const hashsOld = [...confOld].map(int => hash(int));
     for (const intNew of confNew) {
@@ -444,8 +444,8 @@ class GitMode extends Mode {
     return ints;
   }
 
-  async handleFileChange(confPath: string, filePath: string): Promise<{}[]> {
-    const ints: {}[] = [];
+  async handleFileChange(confPath: string, filePath: string): Promise<unknown[]> {
+    const ints: unknown[] = [];
     const conf = await this.loadConfigFile(confPath);
     for (const int of conf) {
       const { name, version, folder } = int as Instance;
@@ -469,9 +469,9 @@ class ManualMode extends Mode {
     this.component = inputs.component;
   }
 
-  async findInstances(): Promise<{}[]> {
+  async findInstances(): Promise<unknown[]> {
     core.startGroup("Manual Mode: Create instances from manual input");
-    const ints: {}[] = [];
+    const ints: unknown[] = [];
     const [inputName, inputVersion] = this.component.split("/");
 
     const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
@@ -501,9 +501,9 @@ class AliasMode extends Mode {
     super(inputs);
   }
 
-  async findInstances(): Promise<{}[]> {
+  async findInstances(): Promise<unknown[]> {
     core.startGroup("Alias Mode: Create alias for all package");
-    const ints: {}[] = [];
+    const ints: unknown[] = [];
 
     const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
 
@@ -526,7 +526,7 @@ class AliasMode extends Mode {
     return ints;
   }
 
-  async dispatchInstances(ints: {}[]) {
+  async dispatchInstances(ints: unknown[]) {
     core.startGroup("Dispatch instances");
 
     const [owner, repo] = this.repo.split("/");
@@ -548,7 +548,7 @@ class AliasMode extends Mode {
         cmds.push(`conan upload ${name}/${branch}@ --all -c -r ${conanRepo}`)
       }
     }
-    const  client_payload: Payload = {
+    const client_payload: Payload = {
       image: "aivero/conan:bionic-x86_64",
       tags: ["X64"],
       cmdsPre: JSON.stringify(cmdsPre),
