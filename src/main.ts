@@ -86,8 +86,9 @@ class Mode {
   }
 
   async getImageTags(profile: string): Promise<[string, string[]]> {
-    // OS options
-    let image = "";
+    // Base Conan image
+    let image = "aivero/conan:";
+
     let tags = {} as string[];
     if (profile.includes("musl")) {
       image += "alpine";
@@ -219,7 +220,6 @@ class Mode {
   }
 
   async getConanPayload(int: ConanInstance): Promise<{ [name: string]: Payload }> {
-    const event_type = `DispatchConan`;
     const payloads: { [name: string]: Payload } = {};
     // Default profiles
     const profiles = [
@@ -234,8 +234,6 @@ class Mode {
     for (const profile of int.profiles) {
       const payload = await this.getBasePayload(int);
       payload.profile = profile;
-      // Base Conan image
-      payload.image = "aivero/conan:";
 
       [payload.image, payload.tags] = await this.getImageTags(profile);
 
@@ -297,7 +295,7 @@ class Mode {
       ]));
 
       payload.context = `${int.name}/${version}: ${profile} (${hash(payload)})`
-      payloads[event_type] = payload;
+      payloads[payload.context] = payload;
     }
     return payloads;
   }
