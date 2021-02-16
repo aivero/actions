@@ -11207,6 +11207,35 @@ class Mode {
         this.token = inputs.token;
         this.git = simple_git_1.default();
     }
+    getImageTags(profile) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // OS options
+            let image = "";
+            let tags = {};
+            if (profile.includes("musl")) {
+                image += "alpine";
+            }
+            else if (profile.includes("Linux") || profile.includes("Wasi")) {
+                image += "bionic";
+            }
+            else if (profile.includes("Windows")) {
+                image += "windows";
+            }
+            else if (profile.includes("Macos")) {
+                image += "macos";
+            }
+            // Arch options
+            if (profile.includes("x86_64") || profile.includes("wasm")) {
+                image += "-x86_64";
+                tags = ["X64"];
+            }
+            else if (profile.includes("armv8")) {
+                image += "-armv8";
+                tags = ["ARM64"];
+            }
+            return [image, tags];
+        });
+    }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
             const ints = yield this.findInstances();
@@ -11310,15 +11339,18 @@ class Mode {
     }
     getCommandPayload(int) {
         return __awaiter(this, void 0, void 0, function* () {
+            const event_type = `DispatchCommand`;
             const payloads = {};
-            const eventName = `${int.name}/${int.version}`;
-            payloads[eventName] = yield this.getBasePayload(int);
+            const payload = yield this.getBasePayload(int);
+            payload.context = `${int.name}/${int.version}`;
+            payloads[event_type] = payload;
             return payloads;
         });
     }
     getConanPayload(int) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            const event_type = `DispatchConan`;
             const payloads = {};
             // Default profiles
             const profiles = [
@@ -11334,28 +11366,7 @@ class Mode {
                 payload.profile = profile;
                 // Base Conan image
                 payload.image = "aivero/conan:";
-                // OS options
-                if (profile.includes("musl")) {
-                    payload.image += "alpine";
-                }
-                else if (profile.includes("Linux") || profile.includes("Wasi")) {
-                    payload.image += "bionic";
-                }
-                else if (profile.includes("Windows")) {
-                    payload.image += "windows";
-                }
-                else if (profile.includes("Macos")) {
-                    payload.image += "macos";
-                }
-                // Arch options
-                if (profile.includes("x86_64") || profile.includes("wasm")) {
-                    payload.image += "-x86_64";
-                    payload.tags = ["X64"];
-                }
-                else if (profile.includes("armv8")) {
-                    payload.image += "-armv8";
-                    payload.tags = ["ARM64"];
-                }
+                [payload.image, payload.tags] = yield this.getImageTags(profile);
                 // Handle bootstrap packages
                 if (int.bootstrap) {
                     payload.image += "-bootstrap";
@@ -11407,9 +11418,8 @@ class Mode {
                     `conan remove --locks`,
                     `conan remove * -f`,
                 ]));
-                const eventName = `${int.name}/${version}: ${profile}`;
-                payload.context = `${eventName} (${object_hash_1.default(payload)})`;
-                payloads[eventName] = payload;
+                payload.context = `${int.name}/${version}: ${profile} (${object_hash_1.default(payload)})`;
+                payloads[event_type] = payload;
             }
             return payloads;
         });

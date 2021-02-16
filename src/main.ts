@@ -85,6 +85,31 @@ class Mode {
 
   }
 
+  async getImageTags(profile: string): Promise<[string, string[]]> {
+    // OS options
+    let image = "";
+    let tags = {} as string[];
+    if (profile.includes("musl")) {
+      image += "alpine";
+    } else if (profile.includes("Linux") || profile.includes("Wasi")) {
+      image += "bionic";
+    } else if (profile.includes("Windows")) {
+      image += "windows";
+    } else if (profile.includes("Macos")) {
+      image += "macos";
+    }
+
+    // Arch options
+    if (profile.includes("x86_64") || profile.includes("wasm")) {
+      image += "-x86_64";
+      tags = ["X64"];
+    } else if (profile.includes("armv8")) {
+      image += "-armv8";
+      tags = ["ARM64"];
+    }
+    return [image, tags];
+  }
+
   async run() {
     const ints = await this.findInstances();
     await this.dispatchInstances(ints);
@@ -185,15 +210,17 @@ class Mode {
   }
 
   async getCommandPayload(int: Instance): Promise<{ [name: string]: Payload }> {
+    const event_type = `DispatchCommand`;
     const payloads: { [name: string]: Payload } = {};
-    const eventName = `${int.name}/${int.version}`;
-    payloads[eventName] = await this.getBasePayload(int);
+    const payload = await this.getBasePayload(int);
+    payload.context = `${int.name}/${int.version}`;
+    payloads[event_type] = payload;
     return payloads;
   }
 
   async getConanPayload(int: ConanInstance): Promise<{ [name: string]: Payload }> {
+    const event_type = `DispatchConan`;
     const payloads: { [name: string]: Payload } = {};
-
     // Default profiles
     const profiles = [
       "Linux-x86_64",
@@ -210,25 +237,7 @@ class Mode {
       // Base Conan image
       payload.image = "aivero/conan:";
 
-      // OS options
-      if (profile.includes("musl")) {
-        payload.image += "alpine";
-      } else if (profile.includes("Linux") || profile.includes("Wasi")) {
-        payload.image += "bionic";
-      } else if (profile.includes("Windows")) {
-        payload.image += "windows";
-      } else if (profile.includes("Macos")) {
-        payload.image += "macos";
-      }
-
-      // Arch options
-      if (profile.includes("x86_64") || profile.includes("wasm")) {
-        payload.image += "-x86_64";
-        payload.tags = ["X64"];
-      } else if (profile.includes("armv8")) {
-        payload.image += "-armv8";
-        payload.tags = ["ARM64"];
-      }
+      [payload.image, payload.tags] = await this.getImageTags(profile);
 
       // Handle bootstrap packages
       if (int.bootstrap) {
@@ -287,9 +296,8 @@ class Mode {
         `conan remove * -f`,
       ]));
 
-      const eventName = `${int.name}/${version}: ${profile}`;
-      payload.context = `${eventName} (${hash(payload)})`
-      payloads[eventName] = payload;
+      payload.context = `${int.name}/${version}: ${profile} (${hash(payload)})`
+      payloads[event_type] = payload;
     }
     return payloads;
   }
