@@ -11462,35 +11462,35 @@ class Mode {
                 client_payload.cmds.main = "";
                 if (int.conanInstall) {
                     int.cmds = int.cmds || [];
-                    for (const conanPkgs in int.conanInstall) {
+                    for (const conanPkgs of int.conanInstall) {
                         int.cmds = int.cmds.concat([
-                            `conan install ${conanPkgs}/${int.version} -if ${int.folder}/install-${conanPkgs}`
+                            `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install-${conanPkgs}`
                         ]);
                     }
                     client_payload.cmds.main = JSON.stringify(int.cmds);
                 }
-                if (int.docker) {
-                    client_payload.docker = client_payload.docker || {};
-                    if (int.docker.tag) {
-                        client_payload.docker.tag = `${int.docker.tag}:${int.version}`;
-                    }
-                    else {
-                        client_payload.docker.tag = `ghcr.io/aivero/${int.name}:${int.version}`;
-                    }
-                    if (int.docker.platform) {
-                        client_payload.docker.platform = int.docker.platform;
-                    }
-                    else {
-                        client_payload.profile = client_payload.profile || "";
-                        client_payload.docker.platform = yield this.getDockerPlatform(client_payload.profile);
-                    }
-                    if (int.docker.dockerfile) {
-                        client_payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
-                    }
-                    else {
-                        client_payload.profile = client_payload.profile || "";
-                        client_payload.docker.dockerfile = `${int.folder}/docker/${client_payload.profile}.Dockerfile`;
-                    }
+                int.docker = int.docker || {};
+                client_payload.docker = client_payload.docker || {};
+                if (int.docker.tag) {
+                    client_payload.docker.tag = `${int.docker.tag}:${int.version}`;
+                }
+                else {
+                    client_payload.profile = client_payload.profile || "";
+                    client_payload.docker.tag = `ghcr.io/aivero/${int.name}/${client_payload.profile.toLowerCase()}:${int.branch}`;
+                }
+                if (int.docker.platform) {
+                    client_payload.docker.platform = int.docker.platform;
+                }
+                else {
+                    client_payload.profile = client_payload.profile || "";
+                    client_payload.docker.platform = yield this.getDockerPlatform(client_payload.profile);
+                }
+                if (int.docker.dockerfile) {
+                    client_payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
+                }
+                else {
+                    client_payload.profile = client_payload.profile || "";
+                    client_payload.docker.dockerfile = `${int.folder}/docker/${client_payload.profile}.Dockerfile`;
                 }
             }
             return payloads;
