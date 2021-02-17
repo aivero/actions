@@ -45,6 +45,17 @@ interface ConanInstance extends Instance {
   bootstrap?: boolean;
 }
 
+interface DockerConfig {
+  tag?: string;
+  platform?: string;
+  dockerfile?: string;
+}
+
+interface DockerInstance extends ConanInstance {
+  conanInstall?: string[];
+  docker?: DockerConfig;
+}
+
 enum SelectMode {
   Conan = "conan",
   Docker = "docker",
@@ -62,6 +73,7 @@ interface Payload {
   component?: string;
   version?: string;
   profile?: string;
+  docker?: DockerConfig;
 }
 
 interface Event extends RequestParameters {
@@ -109,6 +121,38 @@ class Mode {
       tags = ["ARM64"];
     }
     return [image, tags];
+  }
+
+  // Parse the profile name to a docker/buildx conform string as per
+  // https://github.com/docker/buildx#---platformvaluevalue
+  async getDockerPlatform(profile: string): Promise<string> {
+    let os = "" as string;
+    let arch = "" as string;
+    if (profile.includes("Linux") || profile.includes("linux")) {
+      os = "linux";
+    } else if (profile.includes("Windows") || profile.includes("windows")) {
+      throw Error(`Windows builds are not yet supported`);
+
+    } else if (profile.includes("Macos") || profile.includes("macos")) {
+      throw Error(`MacOS/Darwin builds are not yet supported`);
+    }
+
+
+    if (profile.includes("armv8") || profile.includes("arm64")) {
+      arch = "arm64"
+    } else if (profile.includes("armv7") || profile.includes("armhf")) {
+      arch = "arm/v7";
+    } else if (profile.includes("86_64") || profile.includes("86-64")) {
+      arch = "amd64";
+    }
+
+    if (!os) {
+      throw Error(`Could not parse profile ${profile} to an os.`);
+    }
+    if (!arch) {
+      throw Error(`Could not parse profile ${profile} to an arch.`);
+    }
+    return `${os}/${arch}`;
   }
 
   async run() {
@@ -222,12 +266,12 @@ class Mode {
   async getConanPayload(int: ConanInstance): Promise<{ [name: string]: Payload }> {
     const payloads: { [name: string]: Payload } = {};
     // Default profiles
-    const profiles = [
-      "Linux-x86_64",
-      "Linux-armv8",
-    ];
+
     if (int.profiles == undefined) {
-      int.profiles = profiles;
+      int.profiles = [
+        "Linux-x86_64",
+        "Linux-armv8",
+      ];
     }
 
     // Create instance for each profile
@@ -260,9 +304,6 @@ class Mode {
         }
       }
 
-      // Check if package is proprietary
-      const conanRepo = await this.getConanRepo(int)
-
       let cmdsPre = int.cmdsPre || [];
       cmdsPre = cmdsPre.concat([
         `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
@@ -272,6 +313,16 @@ class Mode {
         `conan config set general.default_profile=${profile}`,
       ]);
       payload.cmds.pre = JSON.stringify(cmdsPre)
+
+
+      const cmdsPost = int.cmdsPost || [];
+      payload.cmds.post = JSON.stringify(cmdsPost.concat([
+        `conan remove --locks`,
+        `conan remove * -f`,
+      ]));
+
+      // Check if package is proprietary
+      const conanRepo = await this.getConanRepo(int)
 
       let cmds = int.cmds || [];
       cmds = cmds.concat([
@@ -288,14 +339,55 @@ class Mode {
       }
       payload.cmds.main = JSON.stringify(cmds)
 
-      const cmdsPost = int.cmdsPost || [];
-      payload.cmds.post = JSON.stringify(cmdsPost.concat([
-        `conan remove --locks`,
-        `conan remove * -f`,
-      ]));
+
 
       payload.context = `${int.name}/${version}: ${profile} (${hash(payload)})`
       payloads[payload.context] = payload;
+    }
+    return payloads;
+  }
+
+  async getDockerPayload(int: DockerInstance): Promise<{ [name: string]: Payload }> {
+    let payloads: { [name: string]: Payload } = {};
+    payloads = await this.getConanPayload(int);
+
+    for (const [event_type, client_payload] of Object.entries(payloads)) {
+
+      // Conan install all specified conan packages to a folder prefixed with install-
+      client_payload.cmds.main = "";
+      if (int.conanInstall) {
+        int.cmds = int.cmds || [];
+        for (const conanPkgs in int.conanInstall) {
+          int.cmds = int.cmds.concat([
+            `conan install ${conanPkgs}/${int.version} -if ${int.folder}/install-${conanPkgs}`
+          ])
+        }
+        client_payload.cmds.main = JSON.stringify(int.cmds);
+
+      }
+      if (int.docker) {
+        client_payload.docker = client_payload.docker || {};
+        if (int.docker.tag) {
+          client_payload.docker.tag = `${int.docker.tag}:${int.version}`;
+        } else {
+          client_payload.docker.tag = `ghcr.io/aivero/${int.name}:${int.version}`;
+        }
+
+        if (int.docker.platform) {
+          client_payload.docker.platform = int.docker.platform;
+        } else {
+          client_payload.profile = client_payload.profile || "";
+          client_payload.docker.platform = await this.getDockerPlatform(client_payload.profile);
+        }
+
+        if (int.docker.dockerfile) {
+          client_payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
+        } else {
+          client_payload.profile = client_payload.profile || "";
+          client_payload.docker.dockerfile = `${int.folder}/docker/${client_payload.profile}.Dockerfile`;
+        }
+
+      }
     }
     return payloads;
   }
@@ -315,6 +407,9 @@ class Mode {
           break;
         case SelectMode.Command:
           payloads = await this.getCommandPayload(int as Instance);
+          break;
+        case SelectMode.Docker:
+          payloads = await this.getDockerPayload(int as ConanInstance);
           break;
         default:
           throw Error(`Mode '${mode}' is not supported yet.`);
@@ -343,16 +438,19 @@ class Mode {
   }
 
   getMode(int: Instance): SelectMode {
-    if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
-      return SelectMode.Conan;
-    } else if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
-      return SelectMode.Docker;
-    } else if (int.cmds) {
-      return SelectMode.Command;
+    if (!int.mode) {
+
+      if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
+        return SelectMode.Conan;
+      } else if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
+        return SelectMode.Docker;
+      } else if (int.cmds) {
+        return SelectMode.Command;
+      }
+      throw Error(`Could not detect mode for folder: ${int.folder}`);
     }
+    return int.mode;
     // TODO: add support for other modes
-    // TODO: Allow specifying a mode manually.
-    throw Error(`Could not detect mode for folder: ${int.folder}`);
   }
 }
 
