@@ -11471,6 +11471,7 @@ class Mode {
             // Create instance for each profile
             for (const profile of int.profiles) {
                 const payload = yield this.getBasePayload(int);
+                payload.profile = profile;
                 [payload.image, payload.tags] = yield this.getImageTags(profile);
                 let cmdsPre = int.cmdsPre || [];
                 cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
@@ -11478,15 +11479,14 @@ class Mode {
                 const cmdsPost = int.cmdsPost || [];
                 payload.cmds.post = JSON.stringify(cmdsPost.concat(yield this.getConanCmdPost()));
                 // Conan install all specified conan packages to a folder prefixed with install-
-                payload.cmds.main = "";
                 if (int.conanInstall) {
-                    int.cmds = int.cmds || [];
+                    let cmds = int.cmds || [];
                     for (const conanPkgs of int.conanInstall) {
-                        int.cmds = int.cmds.concat([
+                        cmds = cmds.concat([
                             `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install-${conanPkgs}`
                         ]);
                     }
-                    payload.cmds.main = JSON.stringify(int.cmds);
+                    payload.cmds.main = JSON.stringify(cmds);
                 }
                 int.docker = int.docker || {};
                 payload.docker = payload.docker || {};
@@ -11506,7 +11506,7 @@ class Mode {
                     payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
                 }
                 else {
-                    payload.docker.dockerfile = `${int.folder}/docker/${profile.toLowerCase()}.Dockerfile`;
+                    payload.docker.dockerfile = `${int.folder}/docker/${profile}.Dockerfile`;
                 }
                 payload.context = `${int.name}/${int.branch}: ${profile} (${object_hash_1.default(payload)})`;
                 payloads[`docker: ${int.name}/${int.branch}: ${profile}`] = payload;

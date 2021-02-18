@@ -360,6 +360,8 @@ class Mode {
     // Create instance for each profile
     for (const profile of int.profiles) {
       const payload = await this.getBasePayload(int);
+      payload.profile = profile;
+
       [payload.image, payload.tags] = await this.getImageTags(profile);
 
       let cmdsPre = int.cmdsPre || [];
@@ -370,15 +372,14 @@ class Mode {
       payload.cmds.post = JSON.stringify(cmdsPost.concat(await this.getConanCmdPost()));
 
       // Conan install all specified conan packages to a folder prefixed with install-
-      payload.cmds.main = "";
       if (int.conanInstall) {
-        int.cmds = int.cmds || [];
+        let cmds = int.cmds || [];
         for (const conanPkgs of int.conanInstall) {
-          int.cmds = int.cmds.concat([
+          cmds = cmds.concat([
             `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install-${conanPkgs}`
           ])
         }
-        payload.cmds.main = JSON.stringify(int.cmds);
+        payload.cmds.main = JSON.stringify(cmds);
 
       }
 
@@ -399,7 +400,7 @@ class Mode {
       if (int.docker.dockerfile) {
         payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
       } else {
-        payload.docker.dockerfile = `${int.folder}/docker/${profile.toLowerCase()}.Dockerfile`;
+        payload.docker.dockerfile = `${int.folder}/docker/${profile}.Dockerfile`;
       }
 
 
