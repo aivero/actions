@@ -11337,10 +11337,9 @@ class Mode {
             return {
                 image: "node12",
                 context: `${int.name}/${int.version}`,
-                branch: int.branch,
+                version: int.branch,
                 commit: int.commit,
                 component: int.name,
-                version: int.version,
                 cmds: {}
             };
         });
@@ -11453,12 +11452,12 @@ class Mode {
                 // Create branch alias for sha commit version
                 let version = int.version;
                 if ((_a = int.version) === null || _a === void 0 ? void 0 : _a.match("^[0-9a-f]{40}$")) {
-                    cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
+                    cmds.push(`conan upload ${int.name}/${version}@ --all -c -r ${conanRepo}`);
                     version = int.branch;
                 }
                 payload.cmds.main = JSON.stringify(cmds);
-                payload.context = `${int.name}/${version}: ${profile} (${object_hash_1.default(payload)})`;
-                payloads[payload.context] = payload;
+                payload.context = `${int.name}/${int.version}: ${profile} (${object_hash_1.default(payload)})`;
+                payloads[`conan: ${int.name}/${int.version}: ${profile}`] = payload;
             }
             return payloads;
         });
@@ -11507,7 +11506,7 @@ class Mode {
                     payload.docker.dockerfile = `${int.folder}/docker/${profile.toLowerCase()}.Dockerfile`;
                 }
                 payload.context = `${int.name}/${int.version}: ${profile} (${object_hash_1.default(payload)})`;
-                payloads[`dockerMode: ${payload.context}`] = payload;
+                payloads[`docker: ${int.name}/${int.version}: ${profile}`] = payload;
             }
             return payloads;
         });

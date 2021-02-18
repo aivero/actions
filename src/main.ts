@@ -66,7 +66,6 @@ enum SelectMode {
 interface Payload {
   tags?: string[];
   image?: string;
-  branch?: string;
   commit: string;
   context: string;
   cmds: Commands;
@@ -223,10 +222,9 @@ class Mode {
     return {
       image: "node12",
       context: `${int.name}/${int.version}`,
-      branch: int.branch,
+      version: int.branch,
       commit: int.commit,
       component: int.name,
-      version: int.version,
       cmds: {} as Commands
     }
   }
@@ -341,13 +339,13 @@ class Mode {
       // Create branch alias for sha commit version
       let version = int.version
       if (int.version?.match("^[0-9a-f]{40}$")) {
-        cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`)
+        cmds.push(`conan upload ${int.name}/${version}@ --all -c -r ${conanRepo}`)
         version = int.branch
       }
       payload.cmds.main = JSON.stringify(cmds)
 
-      payload.context = `${int.name}/${version}: ${profile} (${hash(payload)})`
-      payloads[payload.context] = payload;
+      payload.context = `${int.name}/${int.version}: ${profile} (${hash(payload)})`
+      payloads[`conan: ${int.name}/${int.version}: ${profile}`] = payload;
     }
     return payloads;
   }
@@ -400,7 +398,7 @@ class Mode {
 
 
       payload.context = `${int.name}/${int.version}: ${profile} (${hash(payload)})`
-      payloads[`dockerMode: ${payload.context}`] = payload;
+      payloads[`docker: ${int.name}/${int.version}: ${profile}`] = payload;
     }
 
     return payloads;
