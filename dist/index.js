@@ -11371,11 +11371,10 @@ class Mode {
     }
     getCommandPayload(int) {
         return __awaiter(this, void 0, void 0, function* () {
-            const event_type = `DispatchCommand`;
             const payloads = {};
             const payload = yield this.getBasePayload(int);
-            payload.context = `${int.name}/${int.version}`;
-            payloads[event_type] = payload;
+            payload.context = `${int.name}/${int.branch}`;
+            payloads[`command: ${int.name}/${int.branch}`] = payload;
             return payloads;
         });
     }
@@ -11450,14 +11449,12 @@ class Mode {
                     `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
                 ]);
                 // Create branch alias for sha commit version
-                let version = int.version;
                 if ((_a = int.version) === null || _a === void 0 ? void 0 : _a.match("^[0-9a-f]{40}$")) {
-                    cmds.push(`conan upload ${int.name}/${version}@ --all -c -r ${conanRepo}`);
-                    version = int.branch;
+                    cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
-                payload.context = `${int.name}/${int.version}: ${profile} (${object_hash_1.default(payload)})`;
-                payloads[`conan: ${int.name}/${int.version}: ${profile}`] = payload;
+                payload.context = `${int.name}/${int.branch}: ${profile} (${object_hash_1.default(payload)})`;
+                payloads[`conan: ${int.name}/${int.branch}: ${profile}`] = payload;
             }
             return payloads;
         });
@@ -11475,6 +11472,11 @@ class Mode {
             for (const profile of int.profiles) {
                 const payload = yield this.getBasePayload(int);
                 [payload.image, payload.tags] = yield this.getImageTags(profile);
+                let cmdsPre = int.cmdsPre || [];
+                cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
+                payload.cmds.pre = JSON.stringify(cmdsPre);
+                const cmdsPost = int.cmdsPost || [];
+                payload.cmds.post = JSON.stringify(cmdsPost.concat(yield this.getConanCmdPost()));
                 // Conan install all specified conan packages to a folder prefixed with install-
                 payload.cmds.main = "";
                 if (int.conanInstall) {
@@ -11489,7 +11491,7 @@ class Mode {
                 int.docker = int.docker || {};
                 payload.docker = payload.docker || {};
                 if (int.docker.tag) {
-                    payload.docker.tag = `${int.docker.tag}:${int.version}`;
+                    payload.docker.tag = `${int.docker.tag}:${int.branch}`;
                 }
                 else {
                     payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${int.branch}`;
@@ -11506,8 +11508,8 @@ class Mode {
                 else {
                     payload.docker.dockerfile = `${int.folder}/docker/${profile.toLowerCase()}.Dockerfile`;
                 }
-                payload.context = `${int.name}/${int.version}: ${profile} (${object_hash_1.default(payload)})`;
-                payloads[`docker: ${int.name}/${int.version}: ${profile}`] = payload;
+                payload.context = `${int.name}/${int.branch}: ${profile} (${object_hash_1.default(payload)})`;
+                payloads[`docker: ${int.name}/${int.branch}: ${profile}`] = payload;
             }
             return payloads;
         });

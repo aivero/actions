@@ -253,11 +253,10 @@ class Mode {
   }
 
   async getCommandPayload(int: Instance): Promise<{ [name: string]: Payload }> {
-    const event_type = `DispatchCommand`;
     const payloads: { [name: string]: Payload } = {};
     const payload = await this.getBasePayload(int);
-    payload.context = `${int.name}/${int.version}`;
-    payloads[event_type] = payload;
+    payload.context = `${int.name}/${int.branch}`;
+    payloads[`command: ${int.name}/${int.branch}`] = payload;
     return payloads;
   }
 
@@ -330,6 +329,7 @@ class Mode {
       const conanRepo = await this.getConanRepo(int)
 
       let cmds = int.cmds || [];
+
       cmds = cmds.concat([
         `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
         `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
@@ -337,15 +337,13 @@ class Mode {
         `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
       ]);
       // Create branch alias for sha commit version
-      let version = int.version
       if (int.version?.match("^[0-9a-f]{40}$")) {
-        cmds.push(`conan upload ${int.name}/${version}@ --all -c -r ${conanRepo}`)
-        version = int.branch
+        cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`)
       }
       payload.cmds.main = JSON.stringify(cmds)
 
-      payload.context = `${int.name}/${int.version}: ${profile} (${hash(payload)})`
-      payloads[`conan: ${int.name}/${int.version}: ${profile}`] = payload;
+      payload.context = `${int.name}/${int.branch}: ${profile} (${hash(payload)})`
+      payloads[`conan: ${int.name}/${int.branch}: ${profile}`] = payload;
     }
     return payloads;
   }
@@ -364,6 +362,13 @@ class Mode {
       const payload = await this.getBasePayload(int);
       [payload.image, payload.tags] = await this.getImageTags(profile);
 
+      let cmdsPre = int.cmdsPre || [];
+      cmdsPre = cmdsPre.concat(await this.getConanCmdPre(profile));
+      payload.cmds.pre = JSON.stringify(cmdsPre)
+
+      const cmdsPost = int.cmdsPost || [];
+      payload.cmds.post = JSON.stringify(cmdsPost.concat(await this.getConanCmdPost()));
+
       // Conan install all specified conan packages to a folder prefixed with install-
       payload.cmds.main = "";
       if (int.conanInstall) {
@@ -380,7 +385,7 @@ class Mode {
       int.docker = int.docker || {};
       payload.docker = payload.docker || {};
       if (int.docker.tag) {
-        payload.docker.tag = `${int.docker.tag}:${int.version}`;
+        payload.docker.tag = `${int.docker.tag}:${int.branch}`;
       } else {
         payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${int.branch}`;
       }
@@ -398,8 +403,8 @@ class Mode {
       }
 
 
-      payload.context = `${int.name}/${int.version}: ${profile} (${hash(payload)})`
-      payloads[`docker: ${int.name}/${int.version}: ${profile}`] = payload;
+      payload.context = `${int.name}/${int.branch}: ${profile} (${hash(payload)})`
+      payloads[`docker: ${int.name}/${int.branch}: ${profile}`] = payload;
     }
 
     return payloads;
