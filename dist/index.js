@@ -11380,6 +11380,25 @@ class Mode {
             return payloads;
         });
     }
+    getConanCmdPre(profile) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return [
+                `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
+                `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
+                `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
+                `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
+                `conan config set general.default_profile=${profile}`,
+            ];
+        });
+    }
+    getConanCmdPost() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return [
+                `conan remove --locks`,
+                `conan remove * -f`,
+            ];
+        });
+    }
     getConanPayload(int) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
@@ -11418,19 +11437,10 @@ class Mode {
                     }
                 }
                 let cmdsPre = int.cmdsPre || [];
-                cmdsPre = cmdsPre.concat([
-                    `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
-                    `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
-                    `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
-                    `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
-                    `conan config set general.default_profile=${profile}`,
-                ]);
+                cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
                 payload.cmds.pre = JSON.stringify(cmdsPre);
                 const cmdsPost = int.cmdsPost || [];
-                payload.cmds.post = JSON.stringify(cmdsPost.concat([
-                    `conan remove --locks`,
-                    `conan remove * -f`,
-                ]));
+                payload.cmds.post = JSON.stringify(cmdsPost.concat(yield this.getConanCmdPost()));
                 // Check if package is proprietary
                 const conanRepo = yield this.getConanRepo(int);
                 let cmds = int.cmds || [];
@@ -11455,11 +11465,18 @@ class Mode {
     }
     getDockerPayload(int) {
         return __awaiter(this, void 0, void 0, function* () {
-            let payloads = {};
-            payloads = yield this.getConanPayload(int);
-            for (const [event_type, client_payload] of Object.entries(payloads)) {
+            const payloads = {};
+            if (int.profiles == undefined) {
+                int.profiles = [
+                    "Linux-x86_64",
+                    "Linux-armv8",
+                ];
+            }
+            // Create instance for each profile
+            for (const profile of int.profiles) {
+                const payload = yield this.getBasePayload(int);
                 // Conan install all specified conan packages to a folder prefixed with install-
-                client_payload.cmds.main = "";
+                payload.cmds.main = "";
                 if (int.conanInstall) {
                     int.cmds = int.cmds || [];
                     for (const conanPkgs of int.conanInstall) {
@@ -11467,31 +11484,30 @@ class Mode {
                             `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install-${conanPkgs}`
                         ]);
                     }
-                    client_payload.cmds.main = JSON.stringify(int.cmds);
+                    payload.cmds.main = JSON.stringify(int.cmds);
                 }
                 int.docker = int.docker || {};
-                client_payload.docker = client_payload.docker || {};
+                payload.docker = payload.docker || {};
                 if (int.docker.tag) {
-                    client_payload.docker.tag = `${int.docker.tag}:${int.version}`;
+                    payload.docker.tag = `${int.docker.tag}:${int.version}`;
                 }
                 else {
-                    client_payload.profile = client_payload.profile || "";
-                    client_payload.docker.tag = `ghcr.io/aivero/${int.name}/${client_payload.profile.toLowerCase()}:${int.branch}`;
+                    payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${int.branch}`;
                 }
                 if (int.docker.platform) {
-                    client_payload.docker.platform = int.docker.platform;
+                    payload.docker.platform = int.docker.platform;
                 }
                 else {
-                    client_payload.profile = client_payload.profile || "";
-                    client_payload.docker.platform = yield this.getDockerPlatform(client_payload.profile);
+                    payload.docker.platform = yield this.getDockerPlatform(profile.toLowerCase());
                 }
                 if (int.docker.dockerfile) {
-                    client_payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
+                    payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
                 }
                 else {
-                    client_payload.profile = client_payload.profile || "";
-                    client_payload.docker.dockerfile = `${int.folder}/docker/${client_payload.profile}.Dockerfile`;
+                    payload.docker.dockerfile = `${int.folder}/docker/${profile.toLowerCase()}.Dockerfile`;
                 }
+                payload.context = `${int.name}/${int.version}: ${profile} (${object_hash_1.default(payload)})`;
+                payloads[`dockerMode: ${payload.context}`] = payload;
             }
             return payloads;
         });
