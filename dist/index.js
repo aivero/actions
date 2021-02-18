@@ -11474,6 +11474,7 @@ class Mode {
             // Create instance for each profile
             for (const profile of int.profiles) {
                 const payload = yield this.getBasePayload(int);
+                [payload.image, payload.tags] = yield this.getImageTags(profile);
                 // Conan install all specified conan packages to a folder prefixed with install-
                 payload.cmds.main = "";
                 if (int.conanInstall) {
