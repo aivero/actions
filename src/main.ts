@@ -599,7 +599,11 @@ class ManualMode extends Mode {
   async findInstances(): Promise<unknown[]> {
     core.startGroup("Manual Mode: Create instances from manual input");
     const ints: unknown[] = [];
-    const [inputName, inputVersion] = this.component.split("/");
+    // in: recipes/rabbitmq-broker/* out: recipes/rabbitmq-broker
+    // in: deepserver/* out: deepserver
+    const inputName: string = this.component.split("/").slice(0,-1).join("/");
+    // in: recipes/rabbitmq-broker/* out: *
+    const inputVersion: string = this.component.split("/")[-1];
 
     const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
 

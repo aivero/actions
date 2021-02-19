@@ -11692,7 +11692,11 @@ class ManualMode extends Mode {
         return __awaiter(this, void 0, void 0, function* () {
             core.startGroup("Manual Mode: Create instances from manual input");
             const ints = [];
-            const [inputName, inputVersion] = this.component.split("/");
+            // in: recipes/rabbitmq-broker/* out: recipes/rabbitmq-broker
+            // in: deepserver/* out: deepserver
+            const inputName = this.component.split("/").slice(0, -1).join("/");
+            // in: recipes/rabbitmq-broker/* out: *
+            const inputVersion = this.component.split("/")[-1];
             const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
             for (const confPath of confPaths) {
                 const confInts = yield this.loadConfigFile(confPath);
