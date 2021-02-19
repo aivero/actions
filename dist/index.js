@@ -11478,6 +11478,10 @@ class Mode {
                 payload.cmds.pre = JSON.stringify(cmdsPre);
                 const cmdsPost = int.cmdsPost || [];
                 payload.cmds.post = JSON.stringify(cmdsPost.concat(yield this.getConanCmdPost()));
+                // Let the user override the version in the devops.yml file, rather than taking the branch or tag name
+                if (int.version) {
+                    payload.version = int.version;
+                }
                 // Conan install all specified conan packages to a folder prefixed with install-
                 if (int.conanInstall) {
                     let cmds = int.cmds || [];
@@ -11491,10 +11495,10 @@ class Mode {
                 int.docker = int.docker || {};
                 payload.docker = payload.docker || {};
                 if (int.docker.tag) {
-                    payload.docker.tag = `${int.docker.tag}:${int.branch}`;
+                    payload.docker.tag = `${int.docker.tag}:${payload.version}`;
                 }
                 else {
-                    payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${int.branch}`;
+                    payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${payload.version}`;
                 }
                 if (int.docker.platform) {
                     payload.docker.platform = int.docker.platform;
