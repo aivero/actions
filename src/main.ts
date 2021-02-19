@@ -223,7 +223,7 @@ class Mode {
     
     return {
       image: "node12",
-      context: `${int.name}/${int.version}`,
+      context: `${int.name}/${int.version} on ${int.branch}`,
       version: int.version,
       commit: int.commit,
       component: int.folder,
