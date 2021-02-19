@@ -1,0 +1,15 @@
+manual mode allow subdir
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Fri Feb 19 17:10:05 2021 +0100
+#
+# On branch master
+# Your branch is behind 'origin/master' by 1 commit, and can be fast-forwarded.
+#   (use "git pull" to update your local branch)
+#
+# Changes to be committed:
+#	modified:   dist/index.js
+#	modified:   src/main.ts
+#

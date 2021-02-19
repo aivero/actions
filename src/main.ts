@@ -196,7 +196,7 @@ class Mode {
       // Version
       if (int.version == undefined) {
         // Set version to commit
-        int.version = int.commit;
+        int.version = int.branch;
       }
 
       // Default folder
@@ -220,10 +220,11 @@ class Mode {
   }
 
   async getBasePayload(int: Instance): Promise<Payload> {
+    
     return {
       image: "node12",
       context: `${int.name}/${int.version}`,
-      version: int.branch,
+      version: int.version,
       commit: int.commit,
       component: int.folder,
       cmds: {} as Commands
