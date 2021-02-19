@@ -11696,13 +11696,13 @@ class ManualMode extends Mode {
             // in: deepserver/* out: deepserver
             const inputName = this.component.split("/").slice(0, -1).join("/");
             // in: recipes/rabbitmq-broker/* out: *
-            const inputVersion = this.component.split("/")[-1];
+            const inputVersion = this.component.split("/").pop();
             const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
             for (const confPath of confPaths) {
                 const confInts = yield this.loadConfigFile(confPath);
                 for (const int of confInts) {
                     const { name, version } = int;
-                    if (inputName != "*" && inputName != name ||
+                    if (inputName != "*" && !inputName.includes(name) ||
                         inputVersion != "*" && inputVersion != version) {
                         continue;
                     }

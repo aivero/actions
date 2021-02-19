@@ -601,17 +601,16 @@ class ManualMode extends Mode {
     const ints: unknown[] = [];
     // in: recipes/rabbitmq-broker/* out: recipes/rabbitmq-broker
     // in: deepserver/* out: deepserver
-    const inputName: string = this.component.split("/").slice(0,-1).join("/");
+    const inputName: string = this.component.split("/").slice(0, -1).join("/");
     // in: recipes/rabbitmq-broker/* out: *
-    const inputVersion: string = this.component.split("/")[-1];
-
+    const inputVersion: string = this.component.split("/").pop() as string;
     const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
 
     for (const confPath of confPaths) {
       const confInts = await this.loadConfigFile(confPath);
       for (const int of confInts) {
         const { name, version } = int as Instance;
-        if (inputName != "*" && inputName != name ||
+        if (inputName != "*" && !inputName.includes(name) ||
           inputVersion != "*" && inputVersion != version) {
           continue;
         }
