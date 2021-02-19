@@ -225,7 +225,7 @@ class Mode {
       context: `${int.name}/${int.version}`,
       version: int.branch,
       commit: int.commit,
-      component: int.name,
+      component: int.folder,
       cmds: {} as Commands
     }
   }
