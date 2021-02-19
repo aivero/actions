@@ -372,11 +372,6 @@ class Mode {
       const cmdsPost = int.cmdsPost || [];
       payload.cmds.post = JSON.stringify(cmdsPost.concat(await this.getConanCmdPost()));
 
-      // Let the user override the version in the devops.yml file, rather than taking the branch or tag name
-      if (int.version) {
-        payload.version = int.version
-      }
-
       // Conan install all specified conan packages to a folder prefixed with install-
       let cmds = int.cmds || [];
       if (int.conanInstall) {
