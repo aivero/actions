@@ -181,7 +181,8 @@ class Mode {
 
       // Set git branch and commit
       if (int.branch == undefined) {
-        int.branch = process.env.GITHUB_REF?.split("/")[2];
+        // turn a env.GITHUB_REF from refs/heads/dependabot/some/more to dependabot/some/more
+        int.branch = process.env.GITHUB_REF?.split("/").slice(2).join("/");
       }
       if (int.commit == undefined) {
         int.commit = process.env.GITHUB_SHA;

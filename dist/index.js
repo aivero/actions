@@ -11299,7 +11299,8 @@ class Mode {
                 }
                 // Set git branch and commit
                 if (int.branch == undefined) {
-                    int.branch = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/")[2];
+                    // turn a env.GITHUB_REF from refs/heads/dependabot/some/more to dependabot/some/more
+                    int.branch = (_a = process.env.GITHUB_REF) === null || _a === void 0 ? void 0 : _a.split("/").slice(2).join("/");
                 }
                 if (int.commit == undefined) {
                     int.commit = process.env.GITHUB_SHA;
