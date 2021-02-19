@@ -11484,15 +11484,15 @@ class Mode {
                     payload.version = int.version;
                 }
                 // Conan install all specified conan packages to a folder prefixed with install-
+                let cmds = int.cmds || [];
                 if (int.conanInstall) {
-                    let cmds = int.cmds || [];
                     for (const conanPkgs of int.conanInstall) {
                         cmds = cmds.concat([
                             `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install-${conanPkgs}`
                         ]);
                     }
-                    payload.cmds.main = JSON.stringify(cmds);
                 }
+                payload.cmds.main = JSON.stringify(cmds);
                 int.docker = int.docker || {};
                 payload.docker = payload.docker || {};
                 if (int.docker.tag) {
