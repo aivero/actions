@@ -11199,6 +11199,7 @@ var SelectMode;
     SelectMode["Conan"] = "conan";
     SelectMode["Docker"] = "docker";
     SelectMode["Command"] = "command";
+    SelectMode["ConanInstallTarball"] = "conan-install-tarball";
 })(SelectMode || (SelectMode = {}));
 class Mode {
     constructor(inputs) {
@@ -11460,7 +11461,7 @@ class Mode {
             return payloads;
         });
     }
-    getDockerPayload(int) {
+    getConanDockerPayload(int) {
         return __awaiter(this, void 0, void 0, function* () {
             const payloads = {};
             if (int.profiles == undefined) {
@@ -11489,28 +11490,30 @@ class Mode {
                     }
                 }
                 payload.cmds.main = JSON.stringify(cmds);
-                int.docker = int.docker || {};
-                payload.docker = payload.docker || {};
-                if (int.docker.tag) {
-                    payload.docker.tag = `${int.docker.tag}:${payload.version}`;
-                }
-                else {
-                    payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${payload.version}`;
-                }
-                if (int.docker.platform) {
-                    payload.docker.platform = int.docker.platform;
-                }
-                else {
-                    payload.docker.platform = yield this.getDockerPlatform(profile.toLowerCase());
-                }
-                if (int.docker.dockerfile) {
-                    payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
-                }
-                else {
-                    payload.docker.dockerfile = `${int.folder}/docker/${profile}.Dockerfile`;
+                if (int.mode == SelectMode.Docker) {
+                    int.docker = int.docker || {};
+                    payload.docker = payload.docker || {};
+                    if (int.docker.tag) {
+                        payload.docker.tag = `${int.docker.tag}:${payload.version}`;
+                    }
+                    else {
+                        payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${payload.version}`;
+                    }
+                    if (int.docker.platform) {
+                        payload.docker.platform = int.docker.platform;
+                    }
+                    else {
+                        payload.docker.platform = yield this.getDockerPlatform(profile.toLowerCase());
+                    }
+                    if (int.docker.dockerfile) {
+                        payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
+                    }
+                    else {
+                        payload.docker.dockerfile = `${int.folder}/docker/${profile}.Dockerfile`;
+                    }
                 }
                 payload.context = `${int.name}/${int.branch}: ${profile} (${object_hash_1.default(payload)})`;
-                payloads[`docker: ${int.name}/${int.branch}: ${profile}`] = payload;
+                payloads[`${int.mode}: ${int.name}/${int.branch}: ${profile}`] = payload;
             }
             return payloads;
         });
@@ -11531,7 +11534,10 @@ class Mode {
                         payloads = yield this.getCommandPayload(int);
                         break;
                     case SelectMode.Docker:
-                        payloads = yield this.getDockerPayload(int);
+                        payloads = yield this.getConanDockerPayload(int);
+                        break;
+                    case SelectMode.ConanInstallTarball:
+                        payloads = yield this.getConanDockerPayload(int);
                         break;
                     default:
                         throw Error(`Mode '${mode}' is not supported yet.`);
@@ -11572,7 +11578,6 @@ class Mode {
             throw Error(`Could not detect mode for folder: ${int.folder}`);
         }
         return int.mode;
-        // TODO: add support for other modes
     }
 }
 class GitMode extends Mode {

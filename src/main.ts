@@ -60,6 +60,7 @@ enum SelectMode {
   Conan = "conan",
   Docker = "docker",
   Command = "command",
+  ConanInstallTarball = "conan-install-tarball",
 }
 
 
@@ -220,7 +221,7 @@ class Mode {
   }
 
   async getBasePayload(int: Instance): Promise<Payload> {
-    
+
     return {
       image: "node12",
       context: `${int.name}/${int.version} on ${int.branch}`,
@@ -350,7 +351,7 @@ class Mode {
     return payloads;
   }
 
-  async getDockerPayload(int: DockerInstance): Promise<{ [name: string]: Payload }> {
+  async getConanDockerPayload(int: DockerInstance): Promise<{ [name: string]: Payload }> {
     const payloads: { [name: string]: Payload } = {};
     if (int.profiles == undefined) {
       int.profiles = [
@@ -384,29 +385,31 @@ class Mode {
       }
       payload.cmds.main = JSON.stringify(cmds);
 
-      int.docker = int.docker || {};
-      payload.docker = payload.docker || {};
-      if (int.docker.tag) {
-        payload.docker.tag = `${int.docker.tag}:${payload.version}`;
-      } else {
-        payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${payload.version}`;
-      }
+      if (int.mode == SelectMode.Docker) {
 
-      if (int.docker.platform) {
-        payload.docker.platform = int.docker.platform;
-      } else {
-        payload.docker.platform = await this.getDockerPlatform(profile.toLowerCase());
-      }
+        int.docker = int.docker || {};
+        payload.docker = payload.docker || {};
+        if (int.docker.tag) {
+          payload.docker.tag = `${int.docker.tag}:${payload.version}`;
+        } else {
+          payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${payload.version}`;
+        }
 
-      if (int.docker.dockerfile) {
-        payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
-      } else {
-        payload.docker.dockerfile = `${int.folder}/docker/${profile}.Dockerfile`;
-      }
+        if (int.docker.platform) {
+          payload.docker.platform = int.docker.platform;
+        } else {
+          payload.docker.platform = await this.getDockerPlatform(profile.toLowerCase());
+        }
 
+        if (int.docker.dockerfile) {
+          payload.docker.dockerfile = `${int.folder}/${int.docker.dockerfile}`;
+        } else {
+          payload.docker.dockerfile = `${int.folder}/docker/${profile}.Dockerfile`;
+        }
+      }
 
       payload.context = `${int.name}/${int.branch}: ${profile} (${hash(payload)})`
-      payloads[`docker: ${int.name}/${int.branch}: ${profile}`] = payload;
+      payloads[`${int.mode}: ${int.name}/${int.branch}: ${profile}`] = payload;
     }
 
     return payloads;
@@ -429,7 +432,10 @@ class Mode {
           payloads = await this.getCommandPayload(int as Instance);
           break;
         case SelectMode.Docker:
-          payloads = await this.getDockerPayload(int as ConanInstance);
+          payloads = await this.getConanDockerPayload(int as ConanInstance);
+          break;
+        case SelectMode.ConanInstallTarball:
+          payloads = await this.getConanDockerPayload(int as ConanInstance);
           break;
         default:
           throw Error(`Mode '${mode}' is not supported yet.`);
@@ -470,7 +476,6 @@ class Mode {
       throw Error(`Could not detect mode for folder: ${int.folder}`);
     }
     return int.mode;
-    // TODO: add support for other modes
   }
 }
 
