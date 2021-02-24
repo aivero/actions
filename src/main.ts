@@ -614,7 +614,7 @@ class ManualMode extends Mode {
     const inputName: string = this.component.split("/").slice(0, -1).join("/");
     // in: recipes/rabbitmq-broker/* out: *
     const inputVersion: string = this.component.split("/").pop() as string;
-    const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
+    const confPaths = (await this.git.raw(["ls-files", "**/devops.yml", "--recurse-submodules"])).trim().split("\n");
 
     for (const confPath of confPaths) {
       const confInts = await this.loadConfigFile(confPath);
