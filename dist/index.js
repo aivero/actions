@@ -11485,9 +11485,13 @@ class Mode {
                 if (int.conanInstall) {
                     for (const conanPkgs of int.conanInstall) {
                         cmds = cmds.concat([
-                            `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install-${conanPkgs}`
+                            `mkdir -p ${int.folder}/install || true`,
+                            `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}-${int.branch}`
                         ]);
                     }
+                    cmds = cmds.concat([
+                        `tar -cvjf ${int.folder}/install/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`
+                    ]);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
                 if (int.mode == SelectMode.Docker) {
