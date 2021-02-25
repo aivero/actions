@@ -11489,7 +11489,7 @@ class Mode {
                         ]);
                     }
                     cmds = cmds.concat([
-                        `tar -cvjf ${int.folder}/install/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`
+                        `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`
                     ]);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
