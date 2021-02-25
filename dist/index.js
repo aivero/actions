@@ -11446,9 +11446,8 @@ class Mode {
                 let cmds = int.cmds || [];
                 cmds = cmds.concat([
                     `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
-                    `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
+                    // `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
-                    `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
                 ]);
                 // Create branch alias for sha commit version
                 if ((_a = int.version) === null || _a === void 0 ? void 0 : _a.match("^[0-9a-f]{40}$")) {
