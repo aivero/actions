@@ -380,7 +380,8 @@ class Mode {
         for (const conanPkgs of int.conanInstall) {
           cmds = cmds.concat([
             `mkdir -p ${int.folder}/install || true`,
-            `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}-${int.branch}`
+            `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
+            `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`
           ])
         }
         cmds = cmds.concat([
@@ -507,7 +508,9 @@ class GitMode extends Mode {
     const ints: unknown[] = [];
     const intsHash = new Set<string>();
     // Compare to previous commit
+    core.info("running this.git.diffSummary([\"HEAD\", this.lastRev]);")
     const diff = await this.git.diffSummary(["HEAD", this.lastRev]);
+    core.info("finished running this.git.diffSummary([\"HEAD\", this.lastRev]);")
     for (const d of diff.files) {
       let filePath = d.file;
       // Handle file renaming
@@ -549,7 +552,9 @@ class GitMode extends Mode {
 
   async handleConfigChange(confPath: string): Promise<unknown[]> {
     // New config.yml
-    const confNew = await this.loadConfig(confPath, await this.git.show([`HEAD:${confPath}`]));
+    core.info("running this.git.show([`HEAD:${confPath}`]));")
+        const confNew = await this.loadConfig(confPath, await this.git.show([`HEAD:${confPath}`]));
+    core.info("running this.git.raw([\"ls - tree\", \" - r\", this.lastRev]);")
     const filesOld = await this.git.raw(["ls-tree", "-r", this.lastRev]);
     if (!filesOld.includes(confPath)) {
       core.info(`Created: ${confPath}`);
