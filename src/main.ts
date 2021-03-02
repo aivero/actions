@@ -7,22 +7,23 @@ import YAML from "yaml";
 import fs from "fs";
 import * as path from "path";
 import hash from "object-hash";
-import { parse, createVisitor } from 'python-ast';
+import { parse, createVisitor } from "python-ast";
 
 const CONFIG_NAME = "devops.yml";
 
 interface Inputs {
   token: string;
   repository: string;
+  lastRev: string;
   mode: string;
   component: string;
   arguments: string;
 }
 
 interface Commands {
-  pre: string,
-  main: string,
-  post: string,
+  pre: string;
+  main: string;
+  post: string;
 }
 interface Instance {
   name: string;
@@ -63,7 +64,6 @@ enum SelectMode {
   ConanInstallTarball = "conan-install-tarball",
 }
 
-
 interface Payload {
   tags?: string[];
   image?: string;
@@ -77,10 +77,10 @@ interface Payload {
 }
 
 interface Event extends RequestParameters {
-  owner: string,
-  repo: string,
-  event_type: string,
-  client_payload: Payload,
+  owner: string;
+  repo: string;
+  event_type: string;
+  client_payload: Payload;
 }
 
 class Mode {
@@ -94,7 +94,6 @@ class Mode {
     this.repo = inputs.repository;
     this.token = inputs.token;
     this.git = simpleGit();
-
   }
 
   async getImageTags(profile: string): Promise<[string, string[]]> {
@@ -132,14 +131,12 @@ class Mode {
       os = "linux";
     } else if (profile.includes("Windows") || profile.includes("windows")) {
       throw Error(`Windows builds are not yet supported`);
-
     } else if (profile.includes("Macos") || profile.includes("macos")) {
       throw Error(`MacOS/Darwin builds are not yet supported`);
     }
 
-
     if (profile.includes("armv8") || profile.includes("arm64")) {
-      arch = "arm64"
+      arch = "arm64";
     } else if (profile.includes("armv7") || profile.includes("armhf")) {
       arch = "arm/v7";
     } else if (profile.includes("86_64") || profile.includes("86-64")) {
@@ -162,7 +159,7 @@ class Mode {
 
   async loadConfigFile(confPath: string): Promise<unknown[]> {
     const confRaw = fs.readFileSync(confPath, "utf8");
-    return this.loadConfig(confPath, confRaw)
+    return this.loadConfig(confPath, confRaw);
   }
 
   async loadConfig(confPath: string, confRaw: string): Promise<unknown[]> {
@@ -208,7 +205,7 @@ class Mode {
       }
 
       // Load mode
-      int.mode = this.getMode(int)
+      int.mode = this.getMode(int);
 
       ints.push(int);
     }
@@ -221,29 +218,35 @@ class Mode {
   }
 
   async getBasePayload(int: Instance): Promise<Payload> {
-
     return {
       image: "node12",
       context: `${int.name}/${int.version} on ${int.branch}`,
       version: int.version,
       commit: int.commit,
       component: int.folder,
-      cmds: {} as Commands
-    }
+      cmds: {} as Commands,
+    };
   }
 
   async getConanRepo(int: ConanInstance): Promise<string> {
-    const conanfilePath = fs.readFileSync(path.join(int.folder, "conanfile.py"), "utf8");
+    const conanfilePath = fs.readFileSync(
+      path.join(int.folder, "conanfile.py"),
+      "utf8"
+    );
     const conanfileAst = parse(conanfilePath);
     let license = "";
     createVisitor({
       shouldVisitNextChild: () => license == "",
       visitExpr_stmt: (expr) => {
         // Find and check expressions: "license = <STRING|TUPLE>"
-        if (expr.children?.length == 3 && expr.children[1].text == "=" && expr.children[0].text == "license") {
-          license = expr.children[2].text
+        if (
+          expr.children?.length == 3 &&
+          expr.children[1].text == "=" &&
+          expr.children[0].text == "license"
+        ) {
+          license = expr.children[2].text;
         }
-      }
+      },
     }).visit(conanfileAst);
     if (license == "") {
       throw Error(`No license in '${conanfilePath}'`);
@@ -252,7 +255,7 @@ class Mode {
     if (license.includes("Proprietary")) {
       conanRepo = "$CONAN_REPO_INTERNAL";
     }
-    return conanRepo
+    return conanRepo;
   }
 
   async getCommandPayload(int: Instance): Promise<{ [name: string]: Payload }> {
@@ -270,24 +273,20 @@ class Mode {
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_PUBLIC`,
       `conan config set general.default_profile=${profile}`,
-    ]
+    ];
   }
   async getConanCmdPost(): Promise<string[]> {
-    return [
-      `conan remove --locks`,
-      `conan remove * -f`,
-    ]
+    return [`conan remove --locks`, `conan remove * -f`];
   }
 
-  async getConanPayload(int: ConanInstance): Promise<{ [name: string]: Payload }> {
+  async getConanPayload(
+    int: ConanInstance
+  ): Promise<{ [name: string]: Payload }> {
     const payloads: { [name: string]: Payload } = {};
     // Default profiles
 
     if (int.profiles == undefined) {
-      int.profiles = [
-        "Linux-x86_64",
-        "Linux-armv8",
-      ];
+      int.profiles = ["Linux-x86_64", "Linux-armv8"];
     }
 
     // Create instance for each profile
@@ -313,23 +312,22 @@ class Mode {
       if (int.options) {
         for (const [opt, val] of Object.entries(int.options)) {
           // Convert to Python bool
-          const res = val == true ? "True"
-            : val == false ? "False"
-              : val;
+          const res = val == true ? "True" : val == false ? "False" : val;
           args += ` -o ${int.name}:${opt}=${res}`;
         }
       }
 
       let cmdsPre = int.cmdsPre || [];
       cmdsPre = cmdsPre.concat(await this.getConanCmdPre(profile));
-      payload.cmds.pre = JSON.stringify(cmdsPre)
-
+      payload.cmds.pre = JSON.stringify(cmdsPre);
 
       const cmdsPost = int.cmdsPost || [];
-      payload.cmds.post = JSON.stringify(cmdsPost.concat(await this.getConanCmdPost()));
+      payload.cmds.post = JSON.stringify(
+        cmdsPost.concat(await this.getConanCmdPost())
+      );
 
       // Check if package is proprietary
-      const conanRepo = await this.getConanRepo(int)
+      const conanRepo = await this.getConanRepo(int);
 
       let cmds = int.cmds || [];
 
@@ -341,23 +339,26 @@ class Mode {
       ]);
       // Create branch alias for sha commit version
       if (int.version?.match("^[0-9a-f]{40}$")) {
-        cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`)
+        cmds.push(
+          `conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`
+        );
       }
-      payload.cmds.main = JSON.stringify(cmds)
+      payload.cmds.main = JSON.stringify(cmds);
 
-      payload.context = `${int.name}/${int.branch}: ${profile} (${hash(payload)})`
+      payload.context = `${int.name}/${int.branch}: ${profile} (${hash(
+        payload
+      )})`;
       payloads[`conan: ${int.name}/${int.branch}: ${profile}`] = payload;
     }
     return payloads;
   }
 
-  async getConanDockerPayload(int: DockerInstance): Promise<{ [name: string]: Payload }> {
+  async getConanDockerPayload(
+    int: DockerInstance
+  ): Promise<{ [name: string]: Payload }> {
     const payloads: { [name: string]: Payload } = {};
     if (int.profiles == undefined) {
-      int.profiles = [
-        "Linux-x86_64",
-        "Linux-armv8",
-      ];
+      int.profiles = ["Linux-x86_64", "Linux-armv8"];
     }
 
     // Create instance for each profile
@@ -369,10 +370,12 @@ class Mode {
 
       let cmdsPre = int.cmdsPre || [];
       cmdsPre = cmdsPre.concat(await this.getConanCmdPre(profile));
-      payload.cmds.pre = JSON.stringify(cmdsPre)
+      payload.cmds.pre = JSON.stringify(cmdsPre);
 
       const cmdsPost = int.cmdsPost || [];
-      payload.cmds.post = JSON.stringify(cmdsPost.concat(await this.getConanCmdPost()));
+      payload.cmds.post = JSON.stringify(
+        cmdsPost.concat(await this.getConanCmdPost())
+      );
 
       // Conan install all specified conan packages to a folder prefixed with install-
       let cmds = int.cmds || [];
@@ -381,29 +384,32 @@ class Mode {
           cmds = cmds.concat([
             `mkdir -p ${int.folder}/install || true`,
             `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
-            `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`
-          ])
+            `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`,
+          ]);
         }
         cmds = cmds.concat([
-          `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`
-        ])
+          `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`,
+        ]);
       }
       payload.cmds.main = JSON.stringify(cmds);
 
       if (int.mode == SelectMode.Docker) {
-
         int.docker = int.docker || {};
         payload.docker = payload.docker || {};
         if (int.docker.tag) {
           payload.docker.tag = `${int.docker.tag}:${payload.version}`;
         } else {
-          payload.docker.tag = `ghcr.io/aivero/${int.name}/${profile.toLowerCase()}:${payload.version}`;
+          payload.docker.tag = `ghcr.io/aivero/${
+            int.name
+          }/${profile.toLowerCase()}:${payload.version}`;
         }
 
         if (int.docker.platform) {
           payload.docker.platform = int.docker.platform;
         } else {
-          payload.docker.platform = await this.getDockerPlatform(profile.toLowerCase());
+          payload.docker.platform = await this.getDockerPlatform(
+            profile.toLowerCase()
+          );
         }
 
         if (int.docker.dockerfile) {
@@ -413,7 +419,9 @@ class Mode {
         }
       }
 
-      payload.context = `${int.name}/${int.branch}: ${profile} (${hash(payload)})`
+      payload.context = `${int.name}/${int.branch}: ${profile} (${hash(
+        payload
+      )})`;
       payloads[`${int.mode}: ${int.name}/${int.branch}: ${profile}`] = payload;
     }
 
@@ -451,7 +459,7 @@ class Mode {
           owner,
           repo,
           event_type,
-          client_payload
+          client_payload,
         };
         core.info(`${inspect(event.client_payload)}`);
         await octokit.repos.createDispatchEvent(event);
@@ -461,7 +469,7 @@ class Mode {
           sha: client_payload.commit,
           state: "pending" as const,
           context: client_payload.context,
-        }
+        };
         await octokit.repos.createCommitStatus(status);
       }
     }
@@ -470,7 +478,6 @@ class Mode {
 
   getMode(int: Instance): SelectMode {
     if (!int.mode) {
-
       if (fs.existsSync(path.join(int.folder as string, "conanfile.py"))) {
         return SelectMode.Conan;
       } else if (fs.existsSync(path.join(int.folder as string, "Dockerfile"))) {
@@ -488,8 +495,8 @@ class GitMode extends Mode {
   lastRev: string;
 
   constructor(inputs: Inputs) {
-    super(inputs)
-    this.lastRev = process.env.GITHUB_LAST_REV || "HEAD^";
+    super(inputs);
+    this.lastRev = inputs.lastRev || "HEAD^";
   }
 
   async findConfig(dir: string): Promise<string | undefined> {
@@ -508,9 +515,9 @@ class GitMode extends Mode {
     const ints: unknown[] = [];
     const intsHash = new Set<string>();
     // Compare to previous commit
-    core.info("running this.git.diffSummary([\"HEAD\", this.lastRev]);")
+    core.info('running this.git.diffSummary(["HEAD", this.lastRev]);');
     const diff = await this.git.diffSummary(["HEAD", this.lastRev]);
-    core.info("finished running this.git.diffSummary([\"HEAD\", this.lastRev]);")
+    core.info('finished running this.git.diffSummary(["HEAD", this.lastRev]);');
     for (const d of diff.files) {
       let filePath = d.file;
       // Handle file renaming
@@ -546,15 +553,18 @@ class GitMode extends Mode {
         }
       }
     }
-    core.endGroup()
+    core.endGroup();
     return ints;
   }
 
   async handleConfigChange(confPath: string): Promise<unknown[]> {
     // New config.yml
-    core.info("running this.git.show([`HEAD:${confPath}`]));")
-        const confNew = await this.loadConfig(confPath, await this.git.show([`HEAD:${confPath}`]));
-    core.info("running this.git.raw([\"ls - tree\", \" - r\", this.lastRev]);")
+    core.info("running this.git.show([`HEAD:${confPath}`]));");
+    const confNew = await this.loadConfig(
+      confPath,
+      await this.git.show([`HEAD:${confPath}`])
+    );
+    core.info('running this.git.raw(["ls - tree", " - r", this.lastRev]);');
     const filesOld = await this.git.raw(["ls-tree", "-r", this.lastRev]);
     if (!filesOld.includes(confPath)) {
       core.info(`Created: ${confPath}`);
@@ -562,7 +572,7 @@ class GitMode extends Mode {
         const intHash = hash(int);
         const { name, version } = int as Instance;
         core.info(
-          `Instance name/version (hash): ${name}/${version} (${intHash})`,
+          `Instance name/version (hash): ${name}/${version} (${intHash})`
         );
       }
       return confNew;
@@ -570,15 +580,18 @@ class GitMode extends Mode {
     // Compare to old config.yml
     core.info(`Changed: ${confPath}`);
     const ints: unknown[] = [];
-    const confOld = await this.loadConfig(confPath, await this.git.show([`${this.lastRev}:${confPath}`]));
-    const hashsOld = [...confOld].map(int => hash(int));
+    const confOld = await this.loadConfig(
+      confPath,
+      await this.git.show([`${this.lastRev}:${confPath}`])
+    );
+    const hashsOld = [...confOld].map((int) => hash(int));
     for (const intNew of confNew) {
       // Check if instance existed in old commit or if instance data changed
       if (!hashsOld.includes(hash(intNew))) {
         const intHash = hash(intNew);
         const { name, version } = intNew as Instance;
         core.info(
-          `Instance name/version (hash): ${name}/${version} (${intHash})`,
+          `Instance name/version (hash): ${name}/${version} (${intHash})`
         );
         ints.push(intNew);
       }
@@ -586,7 +599,10 @@ class GitMode extends Mode {
     return ints;
   }
 
-  async handleFileChange(confPath: string, filePath: string): Promise<unknown[]> {
+  async handleFileChange(
+    confPath: string,
+    filePath: string
+  ): Promise<unknown[]> {
     const ints: unknown[] = [];
     const conf = await this.loadConfigFile(confPath);
     for (const int of conf) {
@@ -594,7 +610,7 @@ class GitMode extends Mode {
       if (path.join(folder).endsWith(path.dirname(filePath))) {
         const intHash = hash(int);
         core.info(
-          `Instance name/version (hash): ${name}/${version} (${intHash})`,
+          `Instance name/version (hash): ${name}/${version} (${intHash})`
         );
         ints.push(int);
       }
@@ -619,24 +635,30 @@ class ManualMode extends Mode {
     const inputName: string = this.component.split("/").slice(0, -1).join("/");
     // in: recipes/rabbitmq-broker/* out: *
     const inputVersion: string = this.component.split("/").pop() as string;
-    const confPaths = (await this.git.raw(["ls-files", "**/devops.yml", "--recurse-submodules"])).trim().split("\n");
+    const confPaths = (
+      await this.git.raw(["ls-files", "**/devops.yml", "--recurse-submodules"])
+    )
+      .trim()
+      .split("\n");
 
     for (const confPath of confPaths) {
       const confInts = await this.loadConfigFile(confPath);
       for (const int of confInts) {
         const { name, version } = int as Instance;
-        if (inputName != "*" && !inputName.includes(name) ||
-          inputVersion != "*" && inputVersion != version) {
+        if (
+          (inputName != "*" && !inputName.includes(name)) ||
+          (inputVersion != "*" && inputVersion != version)
+        ) {
           continue;
         }
         const intHash = hash(ints);
         core.info(
-          `Build component/version (hash): ${name}/${version} (${intHash})`,
+          `Build component/version (hash): ${name}/${version} (${intHash})`
         );
         ints.push(int);
       }
     }
-    core.endGroup()
+    core.endGroup();
     return ints;
   }
 }
@@ -650,7 +672,9 @@ class AliasMode extends Mode {
     core.startGroup("Alias Mode: Create alias for all package");
     const ints: unknown[] = [];
 
-    const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
+    const confPaths = (await this.git.raw(["ls-files", "**/devops.yml"]))
+      .trim()
+      .split("\n");
 
     for (const confPath of confPaths) {
       const confInts = await this.loadConfigFile(confPath);
@@ -658,16 +682,16 @@ class AliasMode extends Mode {
         const { name, version } = int as Instance;
         // Only create alias for component with commit sha as version
         if (!version?.match("^[0-9a-f]{40}$")) {
-          continue
+          continue;
         }
         const intHash = hash(ints);
         core.info(
-          `Alias component/version (hash): ${name}/${version} (${intHash})`,
+          `Alias component/version (hash): ${name}/${version} (${intHash})`
         );
         ints.push(int);
       }
     }
-    core.endGroup()
+    core.endGroup();
     return ints;
   }
 
@@ -687,11 +711,11 @@ class AliasMode extends Mode {
     const cmds: string[] = [];
     for (const int of ints) {
       const { name, version, branch } = int as ConanInstance;
-      const conanRepo = await this.getConanRepo(int as ConanInstance)
+      const conanRepo = await this.getConanRepo(int as ConanInstance);
       // Create branch alias for sha commit versions
       if (version.match("^[0-9a-f]{40}$")) {
-        cmds.push(`conan alias ${name}/${version} ${name}/${branch}`)
-        cmds.push(`conan upload ${name}/${branch}@ --all -c -r ${conanRepo}`)
+        cmds.push(`conan alias ${name}/${version} ${name}/${branch}`);
+        cmds.push(`conan upload ${name}/${branch}@ --all -c -r ${conanRepo}`);
       }
     }
     cmdsComplete.main = JSON.stringify(cmds);
@@ -706,7 +730,7 @@ class AliasMode extends Mode {
       owner,
       repo,
       event_type: "Create branch alias for all Conan packages",
-      client_payload
+      client_payload,
     };
     core.info(`${inspect(event.client_payload)}`);
     await octokit.repos.createDispatchEvent(event);
@@ -720,6 +744,7 @@ async function run(): Promise<void> {
     const inputs: Inputs = {
       token: core.getInput("token"),
       repository: core.getInput("repository"),
+      lastRev: core.getInput("lastRev"),
       mode: core.getInput("mode"),
       component: core.getInput("component"),
       arguments: core.getInput("arguments"),
@@ -736,10 +761,9 @@ async function run(): Promise<void> {
     } else if (inputs.mode == "alias") {
       mode = new AliasMode(inputs);
     } else {
-      throw Error(`Unsupported mode: ${inputs.mode}`)
+      throw Error(`Unsupported mode: ${inputs.mode}`);
     }
     await mode.run();
-
   } catch (error) {
     core.debug(inspect(error));
     core.setFailed(error.message);
