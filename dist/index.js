@@ -11342,7 +11342,7 @@ class Mode {
                 version: int.version,
                 commit: int.commit,
                 component: int.folder,
-                cmds: {}
+                cmds: {},
             };
         });
     }
@@ -11356,10 +11356,12 @@ class Mode {
                 visitExpr_stmt: (expr) => {
                     var _a;
                     // Find and check expressions: "license = <STRING|TUPLE>"
-                    if (((_a = expr.children) === null || _a === void 0 ? void 0 : _a.length) == 3 && expr.children[1].text == "=" && expr.children[0].text == "license") {
+                    if (((_a = expr.children) === null || _a === void 0 ? void 0 : _a.length) == 3 &&
+                        expr.children[1].text == "=" &&
+                        expr.children[0].text == "license") {
                         license = expr.children[2].text;
                     }
-                }
+                },
             }).visit(conanfileAst);
             if (license == "") {
                 throw Error(`No license in '${conanfilePath}'`);
@@ -11393,10 +11395,7 @@ class Mode {
     }
     getConanCmdPost() {
         return __awaiter(this, void 0, void 0, function* () {
-            return [
-                `conan remove --locks`,
-                `conan remove * -f`,
-            ];
+            return [`conan remove --locks`, `conan remove * -f`];
         });
     }
     getConanPayload(int) {
@@ -11405,10 +11404,7 @@ class Mode {
             const payloads = {};
             // Default profiles
             if (int.profiles == undefined) {
-                int.profiles = [
-                    "linux-x86_64",
-                    "linux-armv8",
-                ];
+                int.profiles = ["linux-x86_64", "linux-armv8"];
             }
             // Create instance for each profile
             for (const profile of int.profiles) {
@@ -11430,9 +11426,7 @@ class Mode {
                 if (int.options) {
                     for (const [opt, val] of Object.entries(int.options)) {
                         // Convert to Python bool
-                        const res = val == true ? "True"
-                            : val == false ? "False"
-                                : val;
+                        const res = val == true ? "True" : val == false ? "False" : val;
                         args += ` -o ${int.name}:${opt}=${res}`;
                     }
                 }
@@ -11464,10 +11458,7 @@ class Mode {
         return __awaiter(this, void 0, void 0, function* () {
             const payloads = {};
             if (int.profiles == undefined) {
-                int.profiles = [
-                    "linux-x86_64",
-                    "linux-armv8",
-                ];
+                int.profiles = ["linux-x86_64", "linux-armv8"];
             }
             // Create instance for each profile
             for (const profile of int.profiles) {
@@ -11486,11 +11477,11 @@ class Mode {
                         cmds = cmds.concat([
                             `mkdir -p ${int.folder}/install || true`,
                             `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
-                            `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`
+                            `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`,
                         ]);
                     }
                     cmds = cmds.concat([
-                        `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`
+                        `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`,
                     ]);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
@@ -11551,7 +11542,7 @@ class Mode {
                         owner,
                         repo,
                         event_type,
-                        client_payload
+                        client_payload,
                     };
                     core.info(`${util_1.inspect(event.client_payload)}`);
                     yield octokit.repos.createDispatchEvent(event);
@@ -11587,7 +11578,7 @@ class Mode {
 class GitMode extends Mode {
     constructor(inputs) {
         super(inputs);
-        this.lastRev = process.env.GITHUB_LAST_REV || "HEAD^";
+        this.lastRev = inputs.lastRev || "HEAD^";
     }
     findConfig(dir) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -11607,9 +11598,9 @@ class GitMode extends Mode {
             const ints = [];
             const intsHash = new Set();
             // Compare to previous commit
-            core.info("running this.git.diffSummary([\"HEAD\", this.lastRev]);");
+            core.info('running this.git.diffSummary(["HEAD", this.lastRev]);');
             const diff = yield this.git.diffSummary(["HEAD", this.lastRev]);
-            core.info("finished running this.git.diffSummary([\"HEAD\", this.lastRev]);");
+            core.info('finished running this.git.diffSummary(["HEAD", this.lastRev]);');
             for (const d of diff.files) {
                 let filePath = d.file;
                 // Handle file renaming
@@ -11652,7 +11643,7 @@ class GitMode extends Mode {
             // New config.yml
             core.info("running this.git.show([`HEAD:${confPath}`]));");
             const confNew = yield this.loadConfig(confPath, yield this.git.show([`HEAD:${confPath}`]));
-            core.info("running this.git.raw([\"ls - tree\", \" - r\", this.lastRev]);");
+            core.info('running this.git.raw(["ls - tree", " - r", this.lastRev]);');
             const filesOld = yield this.git.raw(["ls-tree", "-r", this.lastRev]);
             if (!filesOld.includes(confPath)) {
                 core.info(`Created: ${confPath}`);
@@ -11667,7 +11658,7 @@ class GitMode extends Mode {
             core.info(`Changed: ${confPath}`);
             const ints = [];
             const confOld = yield this.loadConfig(confPath, yield this.git.show([`${this.lastRev}:${confPath}`]));
-            const hashsOld = [...confOld].map(int => object_hash_1.default(int));
+            const hashsOld = [...confOld].map((int) => object_hash_1.default(int));
             for (const intNew of confNew) {
                 // Check if instance existed in old commit or if instance data changed
                 if (!hashsOld.includes(object_hash_1.default(intNew))) {
@@ -11710,13 +11701,15 @@ class ManualMode extends Mode {
             const inputName = this.component.split("/").slice(0, -1).join("/");
             // in: recipes/rabbitmq-broker/* out: *
             const inputVersion = this.component.split("/").pop();
-            const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml", "--recurse-submodules"])).trim().split("\n");
+            const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml", "--recurse-submodules"]))
+                .trim()
+                .split("\n");
             for (const confPath of confPaths) {
                 const confInts = yield this.loadConfigFile(confPath);
                 for (const int of confInts) {
                     const { name, version } = int;
-                    if (inputName != "*" && !inputName.includes(name) ||
-                        inputVersion != "*" && inputVersion != version) {
+                    if ((inputName != "*" && !inputName.includes(name)) ||
+                        (inputVersion != "*" && inputVersion != version)) {
                         continue;
                     }
                     const intHash = object_hash_1.default(ints);
@@ -11737,7 +11730,9 @@ class AliasMode extends Mode {
         return __awaiter(this, void 0, void 0, function* () {
             core.startGroup("Alias Mode: Create alias for all package");
             const ints = [];
-            const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml"])).trim().split("\n");
+            const confPaths = (yield this.git.raw(["ls-files", "**/devops.yml"]))
+                .trim()
+                .split("\n");
             for (const confPath of confPaths) {
                 const confInts = yield this.loadConfigFile(confPath);
                 for (const int of confInts) {
@@ -11789,7 +11784,7 @@ class AliasMode extends Mode {
                 owner,
                 repo,
                 event_type: "Create branch alias for all Conan packages",
-                client_payload
+                client_payload,
             };
             core.info(`${util_1.inspect(event.client_payload)}`);
             yield octokit.repos.createDispatchEvent(event);
@@ -11804,6 +11799,7 @@ function run() {
             const inputs = {
                 token: core.getInput("token"),
                 repository: core.getInput("repository"),
+                lastRev: core.getInput("lastRev"),
                 mode: core.getInput("mode"),
                 component: core.getInput("component"),
                 arguments: core.getInput("arguments"),
