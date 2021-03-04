@@ -104,11 +104,11 @@ class Mode {
     let tags = {} as string[];
     if (profile.includes("musl")) {
       image += "alpine";
-    } else if (profile.includes("Linux") || profile.includes("Wasi")) {
+    } else if (profile.includes("linux") || profile.includes("wasi")) {
       image += "bionic";
-    } else if (profile.includes("Windows")) {
+    } else if (profile.includes("windows")) {
       image += "windows";
-    } else if (profile.includes("Macos")) {
+    } else if (profile.includes("macos")) {
       image += "macos";
     }
 
@@ -285,8 +285,8 @@ class Mode {
 
     if (int.profiles == undefined) {
       int.profiles = [
-        "Linux-x86_64",
-        "Linux-armv8",
+        "linux-x86_64",
+        "linux-armv8",
       ];
     }
 
@@ -355,8 +355,8 @@ class Mode {
     const payloads: { [name: string]: Payload } = {};
     if (int.profiles == undefined) {
       int.profiles = [
-        "Linux-x86_64",
-        "Linux-armv8",
+        "linux-x86_64",
+        "linux-armv8",
       ];
     }
 
