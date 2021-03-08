@@ -11419,7 +11419,7 @@ class Mode {
                 let args = this.args;
                 if (int.settings) {
                     for (const [set, val] of Object.entries(int.settings)) {
-                        args += ` -s ${int.name}:${set}=${val}`;
+                        args += `-s ${int.name}:${set}=${val} `;
                     }
                 }
                 // Options
@@ -11427,9 +11427,10 @@ class Mode {
                     for (const [opt, val] of Object.entries(int.options)) {
                         // Convert to Python bool
                         const res = val == true ? "True" : val == false ? "False" : val;
-                        args += ` -o ${int.name}:${opt}=${res}`;
+                        args += `-o ${int.name}:${opt}=${res} `;
                     }
                 }
+                args = args.trim();
                 let cmdsPre = int.cmdsPre || [];
                 cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
                 payload.cmds.pre = JSON.stringify(cmdsPre);
