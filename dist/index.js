@@ -11439,7 +11439,7 @@ class Mode {
                 const conanRepo = yield this.getConanRepo(int);
                 let cmds = int.cmds || [];
                 cmds = cmds.concat([
-                    `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
+                    `conan create ${args} ${int.folder} ${int.name}/${int.version}@`,
                     // `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                 ]);
@@ -11465,6 +11465,21 @@ class Mode {
                 const payload = yield this.getBasePayload(int);
                 payload.profile = profile;
                 [payload.image, payload.tags] = yield this.getImageTags(profile);
+                // Settings
+                let args = this.args;
+                if (int.settings) {
+                    for (const [set, val] of Object.entries(int.settings)) {
+                        args += ` -s ${int.name}:${set}=${val}`;
+                    }
+                }
+                // Options
+                if (int.options) {
+                    for (const [opt, val] of Object.entries(int.options)) {
+                        // Convert to Python bool
+                        const res = val == true ? "True" : val == false ? "False" : val;
+                        args += ` -o ${int.name}:${opt}=${res}`;
+                    }
+                }
                 let cmdsPre = int.cmdsPre || [];
                 cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
                 payload.cmds.pre = JSON.stringify(cmdsPre);
@@ -11476,7 +11491,7 @@ class Mode {
                     for (const conanPkgs of int.conanInstall) {
                         cmds = cmds.concat([
                             `mkdir -p ${int.folder}/install || true`,
-                            `conan install ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
+                            `conan install ${args} ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
                             `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`,
                         ]);
                     }
