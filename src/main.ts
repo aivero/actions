@@ -316,7 +316,6 @@ class Mode {
           args += `-o ${int.name}:${opt}=${res} `;
         }
       }
-      args = args.trim();
 
       let cmdsPre = int.cmdsPre || [];
       cmdsPre = cmdsPre.concat(await this.getConanCmdPre(profile));
@@ -333,7 +332,7 @@ class Mode {
       let cmds = int.cmds || [];
 
       cmds = cmds.concat([
-        `conan create ${args} ${int.folder} ${int.name}/${int.version}@`,
+        `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
         // `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
         `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
         // `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
