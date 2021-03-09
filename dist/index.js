@@ -11898,7 +11898,7 @@ class ManualMode extends Mode {
                 const confInts = yield this.loadConfigFile(confPath);
                 for (const int of confInts) {
                     const { name, version } = int;
-                    if ((inputName != "*" && !inputName.includes(name)) ||
+                    if ((inputName != "*" && !name.includes(inputName)) ||
                         (inputVersion != "*" && inputVersion != version)) {
                         continue;
                     }

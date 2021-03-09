@@ -662,7 +662,7 @@ class ManualMode extends Mode {
       for (const int of confInts) {
         const { name, version } = int as Instance;
         if (
-          (inputName != "*" && !inputName.includes(name)) ||
+          (inputName != "*" && !name.includes(inputName)) ||
           (inputVersion != "*" && inputVersion != version)
         ) {
           continue;
