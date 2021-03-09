@@ -11488,7 +11488,7 @@ class Mode {
                 // Version
                 if (int.version == undefined) {
                     // Set version to commit
-                    int.version = int.branch;
+                    int.version = int.commit;
                 }
                 // Default folder
                 if (int.folder) {
