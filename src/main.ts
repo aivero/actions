@@ -71,7 +71,7 @@ interface Payload {
   context: string;
   cmds: Commands;
   component?: string;
-  version?: string;
+  branch?: string;
   profile?: string;
   docker?: DockerConfig;
 }
@@ -221,7 +221,7 @@ class Mode {
     return {
       image: "node12",
       context: `${int.name}/${int.version} on ${int.branch}`,
-      version: int.version,
+      branch: int.branch,
       commit: int.commit,
       component: int.folder,
       cmds: {} as Commands,
@@ -413,11 +413,11 @@ class Mode {
         int.docker = int.docker || {};
         payload.docker = payload.docker || {};
         if (int.docker.tag) {
-          payload.docker.tag = `${int.docker.tag}:${payload.version}`;
+          // todo: consider tagging just like conan: hash and then a second tag one on the git branch/tag
+          payload.docker.tag = `${int.docker.tag}:${int.branch}`;
         } else {
-          payload.docker.tag = `ghcr.io/aivero/${
-            int.name
-          }/${profile.toLowerCase()}:${payload.version}`;
+          payload.docker.tag = `ghcr.io/aivero/${int.name
+            }/${profile.toLowerCase()}:${int.branch}`;
         }
 
         if (int.docker.platform) {
