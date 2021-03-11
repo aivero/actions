@@ -412,7 +412,7 @@ class Mode {
         for (const conanPkgs of int.conanInstall) {
           cmds = cmds.concat([
             `mkdir -p ${int.folder}/install || true`,
-            `conan install ${args} ${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
+            `conan install ${args}${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
             `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`,
           ]);
         }
