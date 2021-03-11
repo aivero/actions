@@ -11200,6 +11200,7 @@ var SelectMode;
     SelectMode["Docker"] = "docker";
     SelectMode["Command"] = "command";
     SelectMode["ConanInstallTarball"] = "conan-install-tarball";
+    SelectMode["ConanInstallScript"] = "conan-install-script";
 })(SelectMode || (SelectMode = {}));
 class Mode {
     constructor(inputs) {
@@ -11208,11 +11209,10 @@ class Mode {
         this.token = inputs.token;
         this.git = simple_git_1.default();
     }
-    getImageTags(profile) {
+    getImage(profile) {
         return __awaiter(this, void 0, void 0, function* () {
             // Base Conan image
             let image = "aivero/conan:";
-            let tags = {};
             if (profile.includes("musl")) {
                 image += "alpine";
             }
@@ -11228,13 +11228,24 @@ class Mode {
             // Arch options
             if (profile.includes("x86_64") || profile.includes("wasm")) {
                 image += "-x86_64";
-                tags = ["X64"];
             }
             else if (profile.includes("armv8")) {
                 image += "-armv8";
+            }
+            return image;
+        });
+    }
+    getTags(profile) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let tags = {};
+            // Arch options
+            if (profile.includes("x86_64") || profile.includes("wasm")) {
+                tags = ["X64"];
+            }
+            else if (profile.includes("armv8")) {
                 tags = ["ARM64"];
             }
-            return [image, tags];
+            return tags;
         });
     }
     // Parse the profile name to a docker/buildx conform string as per
@@ -11399,7 +11410,7 @@ class Mode {
         });
     }
     getConanPayload(int) {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const payloads = {};
             // Default profiles
@@ -11410,7 +11421,8 @@ class Mode {
             for (const profile of int.profiles) {
                 const payload = yield this.getBasePayload(int);
                 payload.profile = profile;
-                [payload.image, payload.tags] = yield this.getImageTags(profile);
+                payload.image = yield this.getImage(profile);
+                payload.tags = (_a = int.tags) !== null && _a !== void 0 ? _a : yield this.getTags(profile);
                 // Handle bootstrap packages
                 if (int.bootstrap) {
                     payload.image += "-bootstrap";
@@ -11444,7 +11456,7 @@ class Mode {
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                 ]);
                 // Create branch alias for sha commit version
-                if ((_a = int.version) === null || _a === void 0 ? void 0 : _a.match("^[0-9a-f]{40}$")) {
+                if ((_b = int.version) === null || _b === void 0 ? void 0 : _b.match("^[0-9a-f]{40}$")) {
                     cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
@@ -11455,6 +11467,7 @@ class Mode {
         });
     }
     getConanDockerPayload(int) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const payloads = {};
             if (int.profiles == undefined) {
@@ -11464,7 +11477,8 @@ class Mode {
             for (const profile of int.profiles) {
                 const payload = yield this.getBasePayload(int);
                 payload.profile = profile;
-                [payload.image, payload.tags] = yield this.getImageTags(profile);
+                payload.image = yield this.getImage(profile);
+                payload.tags = (_a = int.tags) !== null && _a !== void 0 ? _a : yield this.getTags(profile);
                 // Settings
                 let args = this.args;
                 if (int.settings) {
@@ -11497,6 +11511,11 @@ class Mode {
                     }
                     cmds = cmds.concat([
                         `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`,
+                    ]);
+                }
+                if (int.mode == SelectMode.ConanInstallScript) {
+                    cmds = cmds.concat([
+                        `${int.script}`
                     ]);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
@@ -11548,6 +11567,9 @@ class Mode {
                         payloads = yield this.getConanDockerPayload(int);
                         break;
                     case SelectMode.ConanInstallTarball:
+                        payloads = yield this.getConanDockerPayload(int);
+                        break;
+                    case SelectMode.ConanInstallScript:
                         payloads = yield this.getConanDockerPayload(int);
                         break;
                     default:

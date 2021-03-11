@@ -54,6 +54,7 @@ interface DockerConfig {
 
 interface DockerInstance extends ConanInstance {
   conanInstall?: string[];
+  script?: string[];
   docker?: DockerConfig;
 }
 
@@ -62,6 +63,7 @@ enum SelectMode {
   Docker = "docker",
   Command = "command",
   ConanInstallTarball = "conan-install-tarball",
+  ConanInstallScript = "conan-install-script",
 }
 
 interface Payload {
@@ -96,11 +98,10 @@ class Mode {
     this.git = simpleGit();
   }
 
-  async getImageTags(profile: string): Promise<[string, string[]]> {
+  async getImage(profile: string): Promise<string> {
     // Base Conan image
     let image = "aivero/conan:";
 
-    let tags = {} as string[];
     if (profile.includes("musl")) {
       image += "alpine";
     } else if (profile.includes("linux") || profile.includes("wasi")) {
@@ -114,12 +115,21 @@ class Mode {
     // Arch options
     if (profile.includes("x86_64") || profile.includes("wasm")) {
       image += "-x86_64";
-      tags = ["X64"];
     } else if (profile.includes("armv8")) {
       image += "-armv8";
+    }
+    return image;
+  }
+  async getTags(profile: string): Promise<string[]> {
+    let tags = {} as string[];
+
+    // Arch options
+    if (profile.includes("x86_64") || profile.includes("wasm")) {
+      tags = ["X64"];
+    } else if (profile.includes("armv8")) {
       tags = ["ARM64"];
     }
-    return [image, tags];
+    return tags;
   }
 
   // Parse the profile name to a docker/buildx conform string as per
@@ -294,7 +304,8 @@ class Mode {
       const payload = await this.getBasePayload(int);
       payload.profile = profile;
 
-      [payload.image, payload.tags] = await this.getImageTags(profile);
+      payload.image = await this.getImage(profile);
+      payload.tags = int.tags ?? await this.getTags(profile);
 
       // Handle bootstrap packages
       if (int.bootstrap) {
@@ -366,7 +377,9 @@ class Mode {
       const payload = await this.getBasePayload(int);
       payload.profile = profile;
 
-      [payload.image, payload.tags] = await this.getImageTags(profile);
+      payload.image = await this.getImage(profile);
+      payload.tags = int.tags ?? await this.getTags(profile);
+
 
       // Settings
       let args = this.args;
@@ -405,6 +418,11 @@ class Mode {
         }
         cmds = cmds.concat([
           `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`,
+        ]);
+      }
+      if (int.mode == SelectMode.ConanInstallScript) {
+        cmds = cmds.concat([
+          `${int.script}`
         ]);
       }
       payload.cmds.main = JSON.stringify(cmds);
@@ -464,6 +482,9 @@ class Mode {
           payloads = await this.getConanDockerPayload(int as ConanInstance);
           break;
         case SelectMode.ConanInstallTarball:
+          payloads = await this.getConanDockerPayload(int as ConanInstance);
+          break;
+        case SelectMode.ConanInstallScript:
           payloads = await this.getConanDockerPayload(int as ConanInstance);
           break;
         default:
