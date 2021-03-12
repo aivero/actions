@@ -421,9 +421,10 @@ class Mode {
         ]);
       }
       if (int.mode == SelectMode.ConanInstallScript) {
-        cmds = cmds.concat([
-          `${int.script}`
-        ]);
+        const scripts = int.script || [];
+        cmds = cmds.concat(
+          scripts
+        );
       }
       payload.cmds.main = JSON.stringify(cmds);
 
