@@ -305,7 +305,7 @@ class Mode {
       payload.profile = profile;
 
       payload.image = await this.getImage(profile);
-      payload.tags = int.tags ?? await this.getTags(profile);
+      payload.tags = int.tags ?? (await this.getTags(profile));
 
       // Handle bootstrap packages
       if (int.bootstrap) {
@@ -378,8 +378,7 @@ class Mode {
       payload.profile = profile;
 
       payload.image = await this.getImage(profile);
-      payload.tags = int.tags ?? await this.getTags(profile);
-
+      payload.tags = int.tags ?? (await this.getTags(profile));
 
       // Settings
       let args = this.args;
@@ -413,6 +412,20 @@ class Mode {
           cmds = cmds.concat([
             `mkdir -p ${int.folder}/install || true`,
             `conan install ${args}${conanPkgs}/${int.branch}@ -if ${int.folder}/install/${conanPkgs}`,
+          ]);
+        }
+      }
+
+      // Add commands
+      if (int.mode == SelectMode.ConanInstallScript) {
+        const scripts = int.script || [];
+        cmds = cmds.concat(scripts);
+      }
+
+      // Replace prefix and create tarball
+      if (int.conanInstall) {
+        for (const conanPkgs of int.conanInstall) {
+          cmds = cmds.concat([
             `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`,
           ]);
         }
@@ -420,12 +433,7 @@ class Mode {
           `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`,
         ]);
       }
-      if (int.mode == SelectMode.ConanInstallScript) {
-        const scripts = int.script || [];
-        cmds = cmds.concat(
-          scripts
-        );
-      }
+
       payload.cmds.main = JSON.stringify(cmds);
 
       if (int.mode == SelectMode.Docker) {
@@ -435,8 +443,9 @@ class Mode {
           // todo: consider tagging just like conan: hash and then a second tag one on the git branch/tag
           payload.docker.tag = `${int.docker.tag}:${int.branch}`;
         } else {
-          payload.docker.tag = `ghcr.io/aivero/${int.name
-            }/${profile.toLowerCase()}:${int.branch}`;
+          payload.docker.tag = `ghcr.io/aivero/${
+            int.name
+          }/${profile.toLowerCase()}:${int.branch}`;
         }
 
         if (int.docker.platform) {
