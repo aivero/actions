@@ -1,11 +1,134 @@
 module.exports =
-/******/ (() => { // webpackBootstrap
+/******/ (function(modules, runtime) { // webpackBootstrap
 /******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		var threw = true;
+/******/ 		try {
+/******/ 			modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 			threw = false;
+/******/ 		} finally {
+/******/ 			if(threw) delete installedModules[moduleId];
+/******/ 		}
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	__webpack_require__.ab = __dirname + "/";
+/******/
+/******/ 	// the startup function
+/******/ 	function startup() {
+/******/ 		// Load entry module and return exports
+/******/ 		return __webpack_require__(198);
+/******/ 	};
+/******/
+/******/ 	// run startup
+/******/ 	return startup();
+/******/ })
+/************************************************************************/
+/******/ ({
 
-/***/ 109:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ 82:
+/***/ (function(__unusedmodule, exports) {
 
+"use strict";
+
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Sanitizes an input into a string so it can be passed into issueCommand safely
+ * @param input input to sanitize into a string
+ */
+function toCommandValue(input) {
+    if (input === null || input === undefined) {
+        return '';
+    }
+    else if (typeof input === 'string' || input instanceof String) {
+        return input;
+    }
+    return JSON.stringify(input);
+}
+exports.toCommandValue = toCommandValue;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 87:
+/***/ (function(module) {
+
+module.exports = require("os");
+
+/***/ }),
+
+/***/ 102:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+// For internal use, subject to change.
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fs = __importStar(__webpack_require__(747));
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
+function issueCommand(command, message) {
+    const filePath = process.env[`GITHUB_${command}`];
+    if (!filePath) {
+        throw new Error(`Unable to find environment variable for file command ${command}`);
+    }
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Missing file at path: ${filePath}`);
+    }
+    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}
+exports.issueCommand = issueCommand;
+//# sourceMappingURL=file-command.js.map
+
+/***/ }),
+
+/***/ 129:
+/***/ (function(module) {
+
+module.exports = require("child_process");
+
+/***/ }),
+
+/***/ 198:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -42,42 +165,46 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(186));
-const util_1 = __nccwpck_require__(669);
-const child_process_1 = __nccwpck_require__(129);
-const coreCommand = __importStar(__nccwpck_require__(351));
-function exec(full_cmd, env = process.env) {
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const util_1 = __webpack_require__(669);
+const child_process_1 = __webpack_require__(129);
+const coreCommand = __importStar(__webpack_require__(431));
+function exec(fullCmd, env = process.env) {
     var e_1, _a;
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup(`Running command: '${full_cmd}'`);
+        core.startGroup(`Running command: '${fullCmd}'`);
         // Replace env vars in command
-        full_cmd = full_cmd.replace(/\$[a-zA-Z0-9_]*/g, match => {
-            const env_var = match.substring(1);
-            return env[env_var] || "undefined";
+        fullCmd = fullCmd.replace(/\$[a-zA-Z0-9_]*/g, (match) => {
+            const envVar = match.substring(1);
+            return env[envVar] || "undefined";
         });
-        // Handle assignment 
-        let match = full_cmd.match(/^([a-zA-Z0-9_]*)=(.*)/);
+        // Handle assignment
+        let match = fullCmd.match(/^([a-zA-Z0-9_]*)=(.*)/);
         if (match) {
             env[match[1]] = match[2];
             core.endGroup();
             return;
         }
         // Handle change directory
-        match = full_cmd.match(/^cd (.*)/);
+        match = fullCmd.match(/^cd (.*)/);
         if (match) {
             env["CWD"] = match[1];
             core.endGroup();
             return;
         }
-        let args = full_cmd.split(" ");
+        let args = fullCmd.split(" ");
         let cmd = args.shift();
         if (!cmd) {
-            throw new Error(`Invalid command: '${full_cmd}'`);
+            throw new Error(`Invalid command: '${fullCmd}'`);
         }
-        const child = yield child_process_1.spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"], env: env, cwd: env["CWD"] });
+        const child = yield child_process_1.spawn(cmd, args, {
+            stdio: ["ignore", "pipe", "pipe"],
+            env: env,
+            cwd: env["CWD"],
+        });
         child.stderr.on("data", (data) => {
-            core.error(data.toString("utf8"));
+            core.info(data.toString("utf8"));
         });
         let res = "";
         try {
@@ -94,26 +221,25 @@ function exec(full_cmd, env = process.env) {
             finally { if (e_1) throw e_1.error; }
         }
         core.endGroup();
-        const exit_code = yield new Promise((resolve, reject) => {
+        const exitCode = yield new Promise((resolve, reject) => {
             child.on("close", resolve);
         });
-        if (exit_code) {
-            throw new Error(`Command '${full_cmd}' failed with code: ${exit_code}`);
+        if (exitCode) {
+            throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}`);
         }
     });
 }
-function runCmds(cmds, input_env) {
+function runCmds(cmds, inputEnv) {
     return __awaiter(this, void 0, void 0, function* () {
         // Overwrite environment variables
         let env = process.env;
-        for (const [key, val] of Object.entries(input_env)) {
+        for (const [key, val] of Object.entries(inputEnv)) {
             env[key] = val;
         }
         // Run commands
         for (const cmd of cmds) {
             yield exec(cmd, env);
         }
-        ;
         // Return environment
         let resEnv = {};
         for (const key in env)
@@ -174,9 +300,10 @@ else {
 
 /***/ }),
 
-/***/ 351:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ 431:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
+"use strict";
 
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
@@ -185,9 +312,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const os = __importStar(__nccwpck_require__(87));
-const utils_1 = __nccwpck_require__(278);
+Object.defineProperty(exports, "__esModule", { value: true });
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
 /**
  * Commands
  *
@@ -259,9 +386,10 @@ function escapeProperty(s) {
 
 /***/ }),
 
-/***/ 186:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ 470:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
+"use strict";
 
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -279,12 +407,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const command_1 = __nccwpck_require__(351);
-const file_command_1 = __nccwpck_require__(717);
-const utils_1 = __nccwpck_require__(278);
-const os = __importStar(__nccwpck_require__(87));
-const path = __importStar(__nccwpck_require__(622));
+Object.defineProperty(exports, "__esModule", { value: true });
+const command_1 = __webpack_require__(431);
+const file_command_1 = __webpack_require__(102);
+const utils_1 = __webpack_require__(82);
+const os = __importStar(__webpack_require__(87));
+const path = __importStar(__webpack_require__(622));
 /**
  * The code to exit an action
  */
@@ -503,139 +631,25 @@ exports.getState = getState;
 
 /***/ }),
 
-/***/ 717:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-
-// For internal use, subject to change.
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-// We use any as a valid input type
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const fs = __importStar(__nccwpck_require__(747));
-const os = __importStar(__nccwpck_require__(87));
-const utils_1 = __nccwpck_require__(278);
-function issueCommand(command, message) {
-    const filePath = process.env[`GITHUB_${command}`];
-    if (!filePath) {
-        throw new Error(`Unable to find environment variable for file command ${command}`);
-    }
-    if (!fs.existsSync(filePath)) {
-        throw new Error(`Missing file at path: ${filePath}`);
-    }
-    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
-        encoding: 'utf8'
-    });
-}
-exports.issueCommand = issueCommand;
-//# sourceMappingURL=file-command.js.map
-
-/***/ }),
-
-/***/ 278:
-/***/ ((__unused_webpack_module, exports) => {
-
-
-// We use any as a valid input type
-/* eslint-disable @typescript-eslint/no-explicit-any */
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-/**
- * Sanitizes an input into a string so it can be passed into issueCommand safely
- * @param input input to sanitize into a string
- */
-function toCommandValue(input) {
-    if (input === null || input === undefined) {
-        return '';
-    }
-    else if (typeof input === 'string' || input instanceof String) {
-        return input;
-    }
-    return JSON.stringify(input);
-}
-exports.toCommandValue = toCommandValue;
-//# sourceMappingURL=utils.js.map
-
-/***/ }),
-
-/***/ 129:
-/***/ ((module) => {
-
-module.exports = require("child_process");;
-
-/***/ }),
-
-/***/ 747:
-/***/ ((module) => {
-
-module.exports = require("fs");;
-
-/***/ }),
-
-/***/ 87:
-/***/ ((module) => {
-
-module.exports = require("os");;
-
-/***/ }),
-
 /***/ 622:
-/***/ ((module) => {
+/***/ (function(module) {
 
-module.exports = require("path");;
+module.exports = require("path");
 
 /***/ }),
 
 /***/ 669:
-/***/ ((module) => {
+/***/ (function(module) {
 
-module.exports = require("util");;
+module.exports = require("util");
+
+/***/ }),
+
+/***/ 747:
+/***/ (function(module) {
+
+module.exports = require("fs");
 
 /***/ })
 
-/******/ 	});
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __nccwpck_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		var threw = true;
-/******/ 		try {
-/******/ 			__webpack_modules__[moduleId].call(module.exports, module, module.exports, __nccwpck_require__);
-/******/ 			threw = false;
-/******/ 		} finally {
-/******/ 			if(threw) delete __webpack_module_cache__[moduleId];
-/******/ 		}
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/compat */
-/******/ 	
-/******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
-/******/ 	// module exports must be returned from runtime so entry inlining is disabled
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(109);
-/******/ })()
-;
+/******/ });
