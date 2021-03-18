@@ -125,9 +125,9 @@ class Mode {
 
     // Arch options
     if (profile.includes("x86_64") || profile.includes("wasm")) {
-      tags = ["X64"];
+      tags = ["X64", "aws"];
     } else if (profile.includes("armv8")) {
-      tags = ["ARM64"];
+      tags = ["ARM64", "aws"];
     }
     return tags;
   }
