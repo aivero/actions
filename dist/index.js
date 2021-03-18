@@ -248,7 +248,7 @@ function runCmds(cmds, inputEnv) {
     });
 }
 function run() {
-    var _a, _b;
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let resEnv = {};
         let inputs;
@@ -262,9 +262,7 @@ function run() {
             core.startGroup(`Inputs`);
             core.info(`Inputs: ${util_1.inspect(inputs)}`);
             core.endGroup();
-            if ((_a = inputs.cmdsPost) === null || _a === void 0 ? void 0 : _a.length) {
-                coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
-            }
+            coreCommand.issueCommand("save-state", { name: "cmdsPost" }, JSON.stringify(inputs.cmdsPost));
             resEnv = yield runCmds(inputs.cmdsPre, inputs.env);
             resEnv = yield runCmds(inputs.cmds, resEnv);
         }
@@ -272,7 +270,7 @@ function run() {
             core.debug(util_1.inspect(error));
             core.setFailed(error.message);
         }
-        if ((_b = inputs === null || inputs === void 0 ? void 0 : inputs.cmdsPost) === null || _b === void 0 ? void 0 : _b.length) {
+        if ((_a = inputs === null || inputs === void 0 ? void 0 : inputs.cmdsPost) === null || _a === void 0 ? void 0 : _a.length) {
             coreCommand.issueCommand("save-state", { name: "envPost" }, JSON.stringify(resEnv));
         }
     });

@@ -103,13 +103,11 @@ async function run(): Promise<void> {
     core.info(`Inputs: ${inspect(inputs)}`);
     core.endGroup();
 
-    if (inputs.cmdsPost?.length) {
-      coreCommand.issueCommand(
-        "save-state",
-        { name: "cmdsPost" },
-        JSON.stringify(inputs.cmdsPost)
-      );
-    }
+    coreCommand.issueCommand(
+      "save-state",
+      { name: "cmdsPost" },
+      JSON.stringify(inputs.cmdsPost)
+    );
 
     resEnv = await runCmds(inputs.cmdsPre as string[], inputs.env);
     resEnv = await runCmds(inputs.cmds as string[], resEnv);
