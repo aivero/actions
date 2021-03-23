@@ -204,9 +204,8 @@ function exec(fullCmd, env = process.env) {
             cwd: env["CWD"],
         });
         child.stderr.on("data", (data) => {
-            core.info(data.toString("utf8"));
+            core.info(data.toString("utf8").trim());
         });
-        let res = "";
         try {
             for (var _b = __asyncValues(child.stdout), _c; _c = yield _b.next(), !_c.done;) {
                 const chunk = _c.value;

@@ -43,10 +43,9 @@ async function exec(fullCmd: string, env = process.env) {
   });
 
   child.stderr.on("data", (data) => {
-    core.info(data.toString("utf8"));
+    core.info(data.toString("utf8").trim());
   });
 
-  let res = "";
   for await (const chunk of child.stdout) {
     core.info(chunk);
   }
