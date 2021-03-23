@@ -11688,13 +11688,15 @@ class Mode {
                     // `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
                     `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
                 ]);
-                // Create branch alias for sha commit version
+                let version = int.version;
+                // Upload branch alias for sha commit version
                 if ((_b = int.version) === null || _b === void 0 ? void 0 : _b.match("^[0-9a-f]{40}$")) {
+                    version = int.branch;
                     cmds.push(`conan upload ${int.name}/${int.branch}@ --all -c -r ${conanRepo}`);
                 }
                 payload.cmds.main = JSON.stringify(cmds);
                 payload.context = `${int.name}/${int.branch}: ${profile} (${object_hash_1.default(payload)})`;
-                payloads[`conan: ${int.name}/${int.branch}: ${profile}`] = payload;
+                payloads[`conan: ${int.name}/${version}: ${profile}`] = payload;
             }
             return payloads;
         });
