@@ -42,8 +42,10 @@ async function exec(fullCmd: string, env = process.env) {
     cwd: env["CWD"],
   });
 
+  let error = ""
   child.stderr.on("data", (data) => {
-    core.info(data.toString("utf8").trim());
+    error = data.toString("utf8").trim();
+    core.info(error);
   });
 
   for await (const chunk of child.stdout) {
@@ -56,7 +58,7 @@ async function exec(fullCmd: string, env = process.env) {
   });
 
   if (exitCode) {
-    throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}`);
+    throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}\nError Output:\n${error}`);
   }
 }
 

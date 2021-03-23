@@ -203,8 +203,10 @@ function exec(fullCmd, env = process.env) {
             env: env,
             cwd: env["CWD"],
         });
+        let error = "";
         child.stderr.on("data", (data) => {
-            core.info(data.toString("utf8").trim());
+            error = data.toString("utf8").trim();
+            core.info(error);
         });
         try {
             for (var _b = __asyncValues(child.stdout), _c; _c = yield _b.next(), !_c.done;) {
@@ -224,7 +226,7 @@ function exec(fullCmd, env = process.env) {
             child.on("close", resolve);
         });
         if (exitCode) {
-            throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}`);
+            throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}\nError Output:\n${error}`);
         }
     });
 }
