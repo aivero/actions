@@ -211,7 +211,7 @@ function exec(fullCmd, env = process.env) {
         try {
             for (var _b = __asyncValues(child.stdout), _c; _c = yield _b.next(), !_c.done;) {
                 const chunk = _c.value;
-                core.info(chunk);
+                core.info(chunk.trim());
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
