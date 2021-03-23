@@ -49,7 +49,7 @@ async function exec(fullCmd: string, env = process.env) {
   });
 
   for await (const chunk of child.stdout) {
-    core.info(chunk.trim());
+    core.info(chunk.toString("utf8").trim());
   }
   core.endGroup();
 
