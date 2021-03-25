@@ -44,6 +44,7 @@ interface ConanInstance extends Instance {
   settings?: { string };
   options?: { string };
   bootstrap?: boolean;
+  debugPkg?: boolean;
 }
 
 interface DockerConfig {
@@ -54,6 +55,7 @@ interface DockerConfig {
 
 interface DockerInstance extends ConanInstance {
   conanInstall?: string[];
+  subdir?: string;
   script?: string[];
   docker?: DockerConfig;
 }
@@ -207,6 +209,12 @@ class Mode {
         int.version = int.commit;
       }
 
+      // Disable debugPkg by deafault
+      if (int.debugPkg == undefined) {
+        // Set version to commit
+        int.debugPkg = false;
+      }
+
       // Default folder
       if (int.folder) {
         int.folder = path.join(folder, int.folder);
@@ -341,14 +349,15 @@ class Mode {
       const conanRepo = await this.getConanRepo(int);
 
       let cmds = int.cmds || [];
-
-      cmds = cmds.concat([
-        `conan create ${args}${int.folder} ${int.name}/${int.version}@`,
-        // `conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`,
-        `conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`,
-        // `conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`,
-      ]);
-
+      cmds.push(`conan create ${args}${int.folder} ${int.name}/${int.version}@`);
+      if (int.debugPkg) {
+        cmds.push(`conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`)
+      }
+      cmds.push(`conan upload ${int.name}/${int.version}@ --all -c -r ${conanRepo}`)
+      if (int.debugPkg) {
+        cmds.push(`conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`)
+      }
+      
       let version = int.version;
       // Upload branch alias for sha commit version
       if (int.version?.match("^[0-9a-f]{40}$")) {
@@ -373,6 +382,10 @@ class Mode {
     const payloads: { [name: string]: Payload } = {};
     if (int.profiles == undefined) {
       int.profiles = ["linux-x86_64", "linux-armv8"];
+    }
+
+    if (int.subdir == undefined) {
+      int.subdir = "opt/aivero/";
     }
 
     // Create instance for each profile
@@ -427,13 +440,13 @@ class Mode {
 
       // Replace prefix and create tarball
       if (int.conanInstall) {
-        for (const conanPkgs of int.conanInstall) {
+        for (const pkg of int.conanInstall) {
           cmds = cmds.concat([
-            `sed -i s#PREFIX=.*#PREFIX=/opt/aivero/${conanPkgs}# ${int.folder}/install/${conanPkgs}/dddq_environment.sh`,
+            `sed -i s#PREFIX=.*#PREFIX=/${int.subdir}/${pkg}# ${int.folder}/install/${pkg}/${int.subdir}/dddq_environment.sh`,
           ]);
         }
         cmds = cmds.concat([
-          `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 -C ${int.folder}/install .`,
+          `tar -cvjf ${int.folder}/${int.name}-${int.branch}.tar.bz2 ${int.folder}/install`,
         ]);
       }
 
