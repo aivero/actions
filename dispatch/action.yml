@@ -3,7 +3,7 @@ description: "Create Github dispatch events"
 inputs:
   token:
     description: "A repo scoped GitHub Personal Access Token"
-    default: ${{ github.token }}
+    default: ${{ secrets.GITHUB_TOKEN }}
   repository:
     description: "The full name of the repository to send the dispatch."
     default: ${{ github.repository }}
