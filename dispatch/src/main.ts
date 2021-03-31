@@ -385,7 +385,7 @@ class Mode {
     }
 
     if (int.subdir == undefined) {
-      int.subdir = "opt/aivero/";
+      int.subdir = "";
     }
 
     // Create instance for each profile
