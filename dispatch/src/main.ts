@@ -112,6 +112,8 @@ class Mode {
       image += "windows";
     } else if (profile.includes("macos")) {
       image += "macos";
+    } else {
+      throw Error("Could not detect image os");
     }
 
     // Arch options
@@ -119,7 +121,10 @@ class Mode {
       image += "-x86_64";
     } else if (profile.includes("armv8")) {
       image += "-armv8";
+    } else {
+      throw Error("Could not detect image arch");
     }
+    
     return image;
   }
   async getTags(profile: string): Promise<string[]> {
