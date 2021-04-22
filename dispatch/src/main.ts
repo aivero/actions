@@ -18,6 +18,7 @@ interface Inputs {
   mode: string;
   component: string;
   arguments: string;
+  gitref: string;
 }
 
 interface Commands {
@@ -124,7 +125,7 @@ class Mode {
     } else {
       throw Error("Could not detect image arch");
     }
-    
+
     return image;
   }
   async getTags(profile: string): Promise<string[]> {
@@ -355,6 +356,7 @@ class Mode {
 
       let cmds = int.cmds || [];
       cmds.push(`conan create ${args}${int.folder} ${int.name}/${int.version}@`);
+      // conan create deepserver deepserver/5.0.0@
       if (int.debugPkg) {
         cmds.push(`conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`)
       }
@@ -362,7 +364,7 @@ class Mode {
       if (int.debugPkg) {
         cmds.push(`conan upload ${int.name}-dbg/${int.version}@ --all -c -r ${conanRepo}`)
       }
-      
+
       let version = int.version;
       // Upload branch alias for sha commit version
       if (int.version?.match("^[0-9a-f]{40}$")) {
@@ -464,9 +466,8 @@ class Mode {
           // todo: consider tagging just like conan: hash and then a second tag one on the git branch/tag
           payload.docker.tag = `${int.docker.tag}:${int.branch}`;
         } else {
-          payload.docker.tag = `ghcr.io/aivero/${
-            int.name
-          }/${profile.toLowerCase()}:${int.branch}`;
+          payload.docker.tag = `ghcr.io/aivero/${int.name
+            }/${profile.toLowerCase()}:${int.branch}`;
         }
 
         if (int.docker.platform) {
@@ -689,10 +690,12 @@ class GitMode extends Mode {
 
 class ManualMode extends Mode {
   component: string;
+  gitref: string;
 
   constructor(inputs: Inputs) {
     super(inputs);
     this.component = inputs.component;
+    this.gitref = inputs.gitref;
   }
 
   async findInstances(): Promise<unknown[]> {
@@ -816,7 +819,13 @@ async function run(): Promise<void> {
       mode: core.getInput("mode"),
       component: core.getInput("component"),
       arguments: core.getInput("arguments"),
+      gitref: core.getInput("gitref"),
     };
+    if (inputs.gitref) {
+      process.env.GITHUB_REF = `ignore/thetext/${inputs.gitref}`;
+      let git = simpleGit();
+      process.env.GITHUB_SHA = (await git.raw(["show-ref", inputs.gitref, "--heads", "--tag", "-s"])).trim();
+    }
     core.startGroup("Inputs");
     core.info(`Inputs: ${inspect(inputs)}`);
     core.endGroup();

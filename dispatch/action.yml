@@ -19,6 +19,9 @@ inputs:
   arguments:
     description: "Additional arguments."
     default:
+  gitref:
+    description: "Git reference to run the runner at"
+    default: 
 runs:
   using: "node12"
   main: "dist/index.js"

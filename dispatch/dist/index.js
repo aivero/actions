@@ -11462,6 +11462,7 @@ class Mode {
                 const conanRepo = yield this.getConanRepo(int);
                 let cmds = int.cmds || [];
                 cmds.push(`conan create ${args}${int.folder} ${int.name}/${int.version}@`);
+                // conan create deepserver deepserver/5.0.0@
                 if (int.debugPkg) {
                     cmds.push(`conan create ${args}${int.folder} ${int.name}-dbg/${int.version}@`);
                 }
@@ -11755,6 +11756,7 @@ class ManualMode extends Mode {
     constructor(inputs) {
         super(inputs);
         this.component = inputs.component;
+        this.gitref = inputs.gitref;
     }
     findInstances() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -11867,7 +11869,13 @@ function run() {
                 mode: core.getInput("mode"),
                 component: core.getInput("component"),
                 arguments: core.getInput("arguments"),
+                gitref: core.getInput("gitref"),
             };
+            if (inputs.gitref) {
+                process.env.GITHUB_REF = `ignore/thetext/${inputs.gitref}`;
+                let git = simple_git_1.default();
+                process.env.GITHUB_SHA = (yield git.raw(["show-ref", inputs.gitref, "--heads", "--tag", "-s"])).trim();
+            }
             core.startGroup("Inputs");
             core.info(`Inputs: ${util_1.inspect(inputs)}`);
             core.endGroup();
