@@ -11538,8 +11538,8 @@ class Mode {
                 if (int.conanInstall) {
                     for (const pkg of int.conanInstall) {
                         cmds = cmds.concat([
-                            `sed -i s#PREFIX=.*#PREFIX=/${int.subdir}/${pkg}# ${int.folder}/install/${pkg}/${int.subdir}/dddq_environment.sh || true`,
-                            `sed -i s#PREFIX=.*#PREFIX=/${int.subdir}/${pkg}# ${int.folder}/install/${pkg}/${int.subdir}/aivero_environment.sh || true`,
+                            `bash -C sed -i s#PREFIX=.*#PREFIX=/${int.subdir}/${pkg}# ${int.folder}/install/${pkg}/${int.subdir}/dddq_environment.sh || true`,
+                            `bash -C sed -i s#PREFIX=.*#PREFIX=/${int.subdir}/${pkg}# ${int.folder}/install/${pkg}/${int.subdir}/aivero_environment.sh || true`,
                         ]);
                     }
                     cmds = cmds.concat([
