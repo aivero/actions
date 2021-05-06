@@ -9,27 +9,6 @@ type resultEnv = {
 
 async function exec(fullCmd: string, env = process.env) {
   core.startGroup(`Running command: '${fullCmd}'`);
-  // Replace env vars in command
-  fullCmd = fullCmd.replace(/\$[a-zA-Z0-9_]*/g, (match) => {
-    const envVar = match.substring(1);
-    return env[envVar] || "undefined";
-  });
-
-  // Handle assignment
-  let match = fullCmd.match(/^([a-zA-Z0-9_]*)=(.*)/);
-  if (match) {
-    env[match[1]] = match[2];
-    core.endGroup();
-    return;
-  }
-
-  // Handle change directory
-  match = fullCmd.match(/^cd (.*)/);
-  if (match) {
-    env["CWD"] = match[1];
-    core.endGroup();
-    return;
-  }
 
   let args = fullCmd.split(" ");
   let cmd = args.shift();
@@ -40,6 +19,7 @@ async function exec(fullCmd: string, env = process.env) {
     stdio: ["ignore", "pipe", "pipe"],
     env: env,
     cwd: env["CWD"],
+    shell: true,
   });
 
   let error = ""
