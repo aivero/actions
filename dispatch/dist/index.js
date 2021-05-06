@@ -11417,7 +11417,7 @@ class Mode {
     }
     getConanCmdPost() {
         return __awaiter(this, void 0, void 0, function* () {
-            return [`conan remove --locks`, `conan remove * -f`];
+            return [`conan remove --locks`, `conan remove '*' -f`];
         });
     }
     getConanPayload(int) {

@@ -300,7 +300,7 @@ class Mode {
     ];
   }
   async getConanCmdPost(): Promise<string[]> {
-    return [`conan remove --locks`, `conan remove * -f`];
+    return [`conan remove --locks`, `conan remove '*' -f`];
   }
 
   async getConanPayload(
