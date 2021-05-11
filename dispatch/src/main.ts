@@ -290,8 +290,10 @@ class Mode {
     return payloads;
   }
 
-  async getConanCmdPre(profile: string): Promise<string[]> {
+  async getConanCmdPre(folder: string, profile: string): Promise<string[]> {
     return [
+      `git lfs install`,
+      `git lfs pull -X todo-dont-match-anything -I ${folder}`,
       `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
       `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
@@ -343,7 +345,7 @@ class Mode {
       }
 
       let cmdsPre = int.cmdsPre || [];
-      cmdsPre = cmdsPre.concat(await this.getConanCmdPre(profile));
+      cmdsPre = cmdsPre.concat(await this.getConanCmdPre(int.folder, profile));
       payload.cmds.pre = JSON.stringify(cmdsPre);
 
       const cmdsPost = int.cmdsPost || [];
@@ -420,7 +422,7 @@ class Mode {
       }
 
       let cmdsPre = int.cmdsPre || [];
-      cmdsPre = cmdsPre.concat(await this.getConanCmdPre(profile));
+      cmdsPre = cmdsPre.concat(await this.getConanCmdPre(int.folder, profile));
       payload.cmds.pre = JSON.stringify(cmdsPre);
 
       const cmdsPost = int.cmdsPost || [];

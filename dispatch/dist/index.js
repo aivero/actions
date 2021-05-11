@@ -11404,9 +11404,11 @@ class Mode {
             return payloads;
         });
     }
-    getConanCmdPre(profile) {
+    getConanCmdPre(folder, profile) {
         return __awaiter(this, void 0, void 0, function* () {
             return [
+                `git lfs install`,
+                `git lfs pull -X todo-dont-match-anything -I ${folder}`,
                 `conan config install $CONAN_CONFIG_URL -sf $CONAN_CONFIG_DIR`,
                 `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_ALL`,
                 `conan user $CONAN_LOGIN_USERNAME -p $CONAN_LOGIN_PASSWORD -r $CONAN_REPO_INTERNAL`,
@@ -11454,7 +11456,7 @@ class Mode {
                     }
                 }
                 let cmdsPre = int.cmdsPre || [];
-                cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
+                cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(int.folder, profile));
                 payload.cmds.pre = JSON.stringify(cmdsPre);
                 const cmdsPost = int.cmdsPost || [];
                 payload.cmds.post = JSON.stringify(cmdsPost.concat(yield this.getConanCmdPost()));
@@ -11515,7 +11517,7 @@ class Mode {
                     }
                 }
                 let cmdsPre = int.cmdsPre || [];
-                cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(profile));
+                cmdsPre = cmdsPre.concat(yield this.getConanCmdPre(int.folder, profile));
                 payload.cmds.pre = JSON.stringify(cmdsPre);
                 const cmdsPost = int.cmdsPost || [];
                 payload.cmds.post = JSON.stringify(cmdsPost.concat(yield this.getConanCmdPost()));
