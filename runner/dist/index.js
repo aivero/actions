@@ -47,16 +47,14 @@ const core = __importStar(__nccwpck_require__(186));
 const util_1 = __nccwpck_require__(669);
 const child_process_1 = __nccwpck_require__(129);
 const coreCommand = __importStar(__nccwpck_require__(351));
-function exec(fullCmd, env = process.env) {
+function exec(cmd, env = process.env) {
     var e_1, _a;
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup(`Running command: '${fullCmd}'`);
-        let args = fullCmd.split(" ");
-        let cmd = args.shift();
+        core.startGroup(`Running command: '${cmd}'`);
         if (!cmd) {
-            throw new Error(`Invalid command: '${fullCmd}'`);
+            throw new Error(`Invalid command: '${cmd}'`);
         }
-        const child = yield child_process_1.spawn(cmd, args, {
+        const child = yield child_process_1.spawn(cmd, {
             stdio: ["ignore", "pipe", "pipe"],
             env: env,
             cwd: env["CWD"],
@@ -85,7 +83,7 @@ function exec(fullCmd, env = process.env) {
             child.on("close", resolve);
         });
         if (exitCode) {
-            throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}\nError Output:\n${error}`);
+            throw new Error(`Command '${cmd}' failed with code: ${exitCode}\nError Output:\n${error}`);
         }
     });
 }

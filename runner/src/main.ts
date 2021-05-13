@@ -7,15 +7,13 @@ type resultEnv = {
   key: string;
 };
 
-async function exec(fullCmd: string, env = process.env) {
-  core.startGroup(`Running command: '${fullCmd}'`);
+async function exec(cmd: string, env = process.env) {
+  core.startGroup(`Running command: '${cmd}'`);
 
-  let args = fullCmd.split(" ");
-  let cmd = args.shift();
   if (!cmd) {
-    throw new Error(`Invalid command: '${fullCmd}'`);
+    throw new Error(`Invalid command: '${cmd}'`);
   }
-  const child = await spawn(cmd, args, {
+  const child = await spawn(cmd, {
     stdio: ["ignore", "pipe", "pipe"],
     env: env,
     cwd: env["CWD"],
@@ -38,7 +36,7 @@ async function exec(fullCmd: string, env = process.env) {
   });
 
   if (exitCode) {
-    throw new Error(`Command '${fullCmd}' failed with code: ${exitCode}\nError Output:\n${error}`);
+    throw new Error(`Command '${cmd}' failed with code: ${exitCode}\nError Output:\n${error}`);
   }
 }
 
