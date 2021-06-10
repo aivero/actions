@@ -7,8 +7,8 @@ inputs:
   repository:
     description: "The full name of the repository to send the dispatch."
     default: ${{ github.repository }}
-  last_commit:
-    description: "The last commit to compare with."
+  lastRev:
+    description: "The last rev to compare with."
     default: ${{ github.event.before }}
   mode:
     description: "Workflow mode: (manual, git, alias)"
